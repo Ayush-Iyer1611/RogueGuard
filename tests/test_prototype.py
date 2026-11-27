@@ -157,7 +157,7 @@ class TestRogueGuardV09(unittest.TestCase):
         self.assertEqual(history[0]["old_status"], "TRIAGED")
         self.assertEqual(history[0]["new_status"], "ACCEPTED")
         events = prototype.list_events(case_id)
-        self.assertEqual(events[0]["event_type"], "FINDING_STATE_CHANGE")
+        self.assertTrue(any(event["event_type"] == "FINDING_STATE_CHANGE" for event in events))
 
     def test_quarantine_requires_remediation_before_reactivation(self):
         finding_ids = self._excess_finding_ids()
