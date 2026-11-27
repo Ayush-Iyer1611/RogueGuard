@@ -639,6 +639,49 @@ def inject_theme():
             .rg-hero { grid-template-columns:1fr !important; }
             .rg-hero h1 { font-size:clamp(3.2rem,10vw,5rem) !important; }
         }
+
+        /* Explicit typography coverage for Streamlit's separately rendered sidebar. */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebar"] * {
+            font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
+        }
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4,
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong {
+            font-family: "Barlow Condensed", Impact, "Arial Narrow", sans-serif !important;
+            font-weight: 800 !important;
+            letter-spacing: .015em !important;
+            text-transform: uppercase;
+        }
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] input,
+        [data-testid="stSidebar"] button,
+        [data-testid="stSidebar"] [data-baseweb="select"] {
+            font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong {
+            font-size: 1.08rem !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+            font-size: .72rem !important;
+            line-height: 1.55 !important;
+            letter-spacing: .015em !important;
+        }
+        [data-testid="stSidebar"] label {
+            font-size: .76rem !important;
+            font-weight: 600 !important;
+            letter-spacing: .01em !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stButton"] button {
+            font-family: "Barlow Condensed", Impact, sans-serif !important;
+            font-size: 1.12rem !important;
+            font-weight: 800 !important;
+            letter-spacing: .06em !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
