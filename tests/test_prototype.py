@@ -211,6 +211,39 @@ class TestRogueGuardV09(unittest.TestCase):
         self.assertNotIn("svc-results-export@campus-demo.iam", payload)
         self.assertIn("[REDACTED-PRINCIPAL]", payload)
 
+    def test_plan_rejects_findings_for_another_principal(self):
+        target_finding = self._excess_finding_ids()[0]
+        other_finding = next(
+            f["finding_id"] for f in self.findings
+            if f["principal"] != self.principal
+        )
+        case_id = prototype.create_case(
+            self.scenario, "Scoped response case", "analyst", [target_finding]
+        )
+        with self.assertRaises(ValueError):
+            prototype.create_action_plan(
+                case_id, self.principal, "REMOVE_EXCESS",
+                "Try to attach unrelated finding.", "analyst", [other_finding]
+            )
+
+    def test_stale_plan_is_rejected_after_state_changes(self):
+        finding_ids = self._excess_finding_ids()
+        case_id = prototype.create_case(
+            self.scenario, "Stale plan case", "analyst", finding_ids
+        )
+        plan_id = prototype.create_action_plan(
+            case_id, self.principal, "REMOVE_EXCESS",
+            "Test stale snapshot protection.", "analyst", finding_ids
+        )
+        prototype.approve_action_plan(plan_id, "reviewer", "APPROVED", "Reviewed original state.")
+        with prototype._connect() as con:
+            con.execute(
+                "UPDATE rg_identities SET owner=? WHERE scenario_id=? AND principal=?",
+                ("Changed Owner", self.scenario, self.principal)
+            )
+        with self.assertRaises(ValueError):
+            prototype.execute_action_plan(plan_id, "operator")
+
     def test_dashboard_summary_reports_loaded_state(self):
         summary = prototype.dashboard_summary(self.scenario)
         self.assertEqual(summary["identities"], 4)
