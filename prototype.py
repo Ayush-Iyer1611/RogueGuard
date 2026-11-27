@@ -186,7 +186,15 @@ def load_scenario(path_or_id: str) -> dict[str, Any]:
     initialize_prototype()
     sid = data["scenario_id"]
     with _connect() as con:
-        # Replace only the active scenario's model and findings. Cases/events remain as history.
+        existing_case = con.execute(
+            "SELECT 1 FROM rg_cases WHERE scenario_id=? LIMIT 1", (sid,)
+        ).fetchone()
+        if existing_case:
+            raise ValueError(
+                "This scenario already has case history. Load a new scenario ID; "
+                "export existing cases before any manual database reset."
+            )
+        # Replace only an unreviewed scenario snapshot. Case history is never silently deleted.
         for table in ("rg_findings", "rg_relationships", "rg_bindings", "rg_baselines",
                       "rg_identities", "rg_resources"):
             con.execute(f"DELETE FROM {table} WHERE scenario_id=?", (sid,))
@@ -651,3 +659,45 @@ def dashboard_summary(scenario_id: str) -> dict[str, int]:
         "high": sum(f["severity"] == "HIGH" for f in findings),
         "open_cases": sum(c["status"] != "CLOSED" for c in list_cases(scenario_id))
     }
+
+
+def list_resources(scenario_id: str) -> list[dict[str, Any]]:
+    initialize_prototype()
+    with _connect() as con:
+        return [dict(r) for r in con.execute(
+            "SELECT * FROM rg_resources WHERE scenario_id=? ORDER BY resource_type,name",
+            (scenario_id,))]
+
+def list_relationships(scenario_id: str) -> list[dict[str, Any]]:
+    initialize_prototype()
+    with _connect() as con:
+        return [dict(r) for r in con.execute(
+            "SELECT * FROM rg_relationships WHERE scenario_id=? ORDER BY relationship_type",
+            (scenario_id,))]
+
+def get_case(case_id: str) -> dict[str, Any] | None:
+    initialize_prototype()
+    with _connect() as con:
+        row=con.execute("SELECT * FROM rg_cases WHERE case_id=?", (case_id,)).fetchone()
+        if row is None:
+            return None
+        case=dict(row)
+        case["findings"]=[dict(r) for r in con.execute(
+            "SELECT f.* FROM rg_findings f JOIN rg_case_findings cf ON cf.finding_id=f.finding_id "
+            "WHERE cf.case_id=? ORDER BY f.severity,f.created_at",(case_id,))]
+        for finding in case["findings"]:
+            finding["evidence"]=json.loads(finding.pop("evidence_json"))
+        return case
+
+def get_plan(plan_id: str) -> dict[str, Any] | None:
+    initialize_prototype()
+    with _connect() as con:
+        row=con.execute("SELECT * FROM rg_action_plans WHERE plan_id=?", (plan_id,)).fetchone()
+        if row is None:
+            return None
+        plan=dict(row)
+        plan["before"]=json.loads(plan.pop("before_json"))
+        plan["after"]=json.loads(plan.pop("after_json"))
+        plan["approvals"]=[dict(r) for r in con.execute(
+            "SELECT * FROM rg_approvals WHERE plan_id=? ORDER BY created_at",(plan_id,))]
+        return plan
