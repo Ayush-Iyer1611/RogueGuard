@@ -1,4 +1,4 @@
-import json
+import html
 from pathlib import Path
 
 import streamlit as st
@@ -6,11 +6,418 @@ import prototype as rg
 
 
 st.set_page_config(
-    page_title="RogueGuard v0.9 | Identity Security Workbench",
-    page_icon="🛡️",
+    page_title="RogueGuard | Identity Security Workbench",
+    page_icon="RG",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
+
+def inject_theme():
+    st.markdown(
+        """
+        <style>
+        :root {
+            color-scheme: light;
+            --paper: #eeede8;
+            --surface: #f8f7f2;
+            --ink: #17191b;
+            --muted: #73777a;
+            --line: #25282b;
+            --soft-line: #d2d0c9;
+            --acid: #c9f36a;
+            --chrome: #b9c0c4;
+            --red: #e34e3d;
+            --amber: #dc9c32;
+            --blue: #4c79a7;
+        }
+        html, body, [data-testid="stAppViewContainer"] {
+            background: var(--paper) !important;
+            color: var(--ink) !important;
+            font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+        }
+        [data-testid="stHeader"] {
+            background: transparent !important;
+            height: 2.2rem;
+        }
+        [data-testid="stMainBlockContainer"] {
+            max-width: 1540px;
+            padding: 1.65rem 3.1rem 3.6rem;
+        }
+        [data-testid="stToolbar"] { right: 1.2rem; }
+        [data-testid="stSidebar"] {
+            background: #17191b !important;
+            border-right: 1px solid #3a3d40;
+        }
+        [data-testid="stSidebar"] * { color: #f3f2ed !important; }
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+            color: #a6aaad !important;
+        }
+        [data-testid="stSidebar"] [data-baseweb="select"] > div,
+        [data-testid="stSidebar"] input {
+            background: #24272a !important;
+            border: 1px solid #555a5e !important;
+            border-radius: 2px !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stButton"] button {
+            background: var(--acid) !important;
+            color: #17191b !important;
+            border: 2px solid #0c0d0e !important;
+            box-shadow: 3px 3px 0 #6d7e46 !important;
+            font-weight: 800 !important;
+        }
+        [data-testid="stSidebar"] hr { border-color: #42464a !important; }
+        h1, h2, h3, h4, p, label, li, span, div {
+            font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+        }
+        h1, h2, h3, h4 { color: var(--ink) !important; letter-spacing: -0.04em; }
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li { color: var(--ink); }
+        [data-testid="stCaptionContainer"] p {
+            color: var(--muted) !important;
+            font-size: .76rem !important;
+        }
+        [data-testid="stMetric"] {
+            background: var(--surface);
+            border: 1.5px solid var(--line);
+            border-radius: 2px;
+            padding: 1rem 1rem .85rem;
+            box-shadow: 4px 4px 0 rgba(23,25,27,.14);
+            min-height: 112px;
+        }
+        [data-testid="stMetricLabel"] p {
+            color: #666b6f !important;
+            text-transform: uppercase;
+            letter-spacing: .11em;
+            font-size: .66rem !important;
+            font-weight: 800 !important;
+        }
+        [data-testid="stMetricValue"] {
+            color: var(--ink) !important;
+            font-size: 2rem !important;
+            font-weight: 850 !important;
+            letter-spacing: -.06em;
+        }
+        [data-testid="stMetricDelta"] { font-size: .7rem !important; }
+        [data-testid="stTabs"] { margin-top: 1.2rem; }
+        [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            gap: .45rem;
+            border-bottom: 1.5px solid var(--line);
+            background: transparent;
+        }
+        [data-testid="stTabs"] button[role="tab"] {
+            color: #5c6063 !important;
+            border: 1px solid transparent;
+            border-radius: 2px 2px 0 0;
+            padding: .65rem 1rem;
+            font-size: .76rem;
+            font-weight: 800;
+            letter-spacing: .045em;
+        }
+        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+            color: var(--ink) !important;
+            background: var(--acid) !important;
+            border: 1.5px solid var(--line) !important;
+            border-bottom-color: var(--acid) !important;
+        }
+        [data-testid="stTabs"] [data-baseweb="tab-highlight"] { background: var(--ink) !important; }
+        [data-testid="stTabs"] [data-baseweb="tab-border"] { display: none; }
+        [data-testid="stButton"] button,
+        [data-testid="stFormSubmitButton"] button,
+        [data-testid="stDownloadButton"] button {
+            color: var(--ink) !important;
+            background: var(--surface) !important;
+            border: 1.5px solid var(--line) !important;
+            border-radius: 2px !important;
+            box-shadow: 3px 3px 0 rgba(23,25,27,.2) !important;
+            font-weight: 800 !important;
+            letter-spacing: .015em;
+            transition: transform .12s ease, box-shadow .12s ease;
+        }
+        [data-testid="stButton"] button:hover,
+        [data-testid="stFormSubmitButton"] button:hover,
+        [data-testid="stDownloadButton"] button:hover {
+            transform: translate(-1px,-1px);
+            box-shadow: 5px 5px 0 rgba(23,25,27,.24) !important;
+            border-color: var(--ink) !important;
+        }
+        [data-testid="stButton"] button[kind="primary"],
+        [data-testid="stFormSubmitButton"] button[kind="primary"] {
+            background: var(--acid) !important;
+        }
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea,
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+        [data-testid="stMultiSelect"] [data-baseweb="select"] > div,
+        [data-testid="stDateInput"] input {
+            background: var(--surface) !important;
+            border: 1px solid #9d9d96 !important;
+            border-radius: 2px !important;
+            color: var(--ink) !important;
+        }
+        [data-testid="stDataFrame"] {
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        [data-testid="stExpander"] {
+            background: rgba(248,247,242,.72);
+            border: 1px solid var(--soft-line);
+            border-radius: 2px;
+        }
+        [data-testid="stAlert"] { border-radius: 2px; }
+        hr { border-color: var(--soft-line) !important; }
+        .rg-masthead {
+            display:flex; align-items:center; justify-content:space-between;
+            padding: .25rem 0 1.1rem; border-bottom: 1.5px solid var(--line);
+            margin-bottom: 1.6rem;
+        }
+        .rg-brand { display:flex; align-items:center; gap:.85rem; }
+        .rg-mark {
+            display:flex; align-items:center; justify-content:center;
+            width:42px; height:42px; background:var(--ink); color:var(--acid);
+            font-size:1rem; font-weight:900; letter-spacing:-.1em;
+            border:1.5px solid var(--ink); box-shadow:4px 4px 0 var(--acid);
+        }
+        .rg-brand-name { color:var(--ink); font-size:1.05rem; font-weight:900; letter-spacing:-.045em; }
+        .rg-brand-sub { color:var(--muted); font:700 .58rem/1.5 ui-monospace, SFMono-Regular, monospace; letter-spacing:.16em; }
+        .rg-top-right { display:flex; align-items:center; gap:1rem; }
+        .rg-top-label { font:700 .62rem ui-monospace, monospace; color:#676c70; letter-spacing:.12em; }
+        .rg-live {
+            display:inline-flex; align-items:center; gap:.45rem; padding:.45rem .65rem;
+            color:var(--ink); background:var(--acid); border:1.5px solid var(--line);
+            font:900 .62rem ui-monospace, monospace; letter-spacing:.09em;
+            box-shadow:3px 3px 0 var(--line);
+        }
+        .rg-live:before { content:""; width:7px; height:7px; border-radius:50%; background:#26351a; }
+        .rg-hero {
+            display:grid; grid-template-columns:minmax(0,1.6fr) minmax(180px,.6fr);
+            align-items:center; gap:2rem; padding:1.8rem 1.9rem;
+            background:var(--surface); border:1.5px solid var(--line);
+            box-shadow:6px 6px 0 var(--line); position:relative; overflow:hidden;
+            margin-bottom:1.15rem;
+        }
+        .rg-kicker { color:#656a6c; font:800 .63rem ui-monospace,monospace; letter-spacing:.18em; text-transform:uppercase; }
+        .rg-hero h1 { margin:.45rem 0 .35rem; font-size:clamp(2rem,4vw,3.6rem); line-height:.98; font-weight:900; letter-spacing:-.075em; }
+        .rg-hero h1 em { font-style:normal; color:#667d3e; }
+        .rg-hero p { max-width:650px; color:#62676a; font-size:.9rem; line-height:1.55; margin:.75rem 0 0; }
+        .rg-chrome-wrap { display:flex; justify-content:center; align-items:center; min-height:155px; }
+        .rg-chrome {
+            width:145px; height:145px; border-radius:50%; position:relative;
+            background:
+                radial-gradient(circle at 32% 24%, #ffffff 0 5%, #eef1f2 9%, transparent 22%),
+                radial-gradient(circle at 70% 76%, #4e565d 0 2%, #aab1b6 12%, transparent 32%),
+                radial-gradient(circle at 38% 38%, #f9fbfc 0 8%, #c8ced1 22%, #7e888e 40%, #f7f8f8 57%, #69747b 72%, #dce0e2 84%, #59646a 100%);
+            box-shadow:inset -13px -14px 22px rgba(23,25,27,.42), inset 8px 9px 16px rgba(255,255,255,.9), 0 12px 24px rgba(23,25,27,.22);
+        }
+        .rg-chrome:before {
+            content:""; position:absolute; inset:18px -14px 18px -14px;
+            border:1px solid rgba(105,115,122,.65); border-radius:50%;
+            transform:rotate(-28deg); box-shadow:0 0 0 5px rgba(255,255,255,.2);
+        }
+        .rg-chrome:after {
+            content:""; position:absolute; left:18%; top:16%; width:43%; height:19%;
+            border-radius:50%; background:linear-gradient(90deg,rgba(255,255,255,.9),rgba(255,255,255,0));
+            filter:blur(5px); transform:rotate(-32deg);
+        }
+        .rg-safety {
+            display:flex; align-items:center; gap:.8rem; padding:.72rem .9rem;
+            background:#fff3dc; border:1.5px solid #8c5a15; color:#563b15;
+            font-size:.76rem; font-weight:700; margin:1rem 0 1.25rem;
+        }
+        .rg-safety b { font:900 .62rem ui-monospace,monospace; letter-spacing:.12em; white-space:nowrap; }
+        .rg-context {
+            display:flex; justify-content:space-between; flex-wrap:wrap; gap:.6rem;
+            padding:.55rem .75rem; border-top:1px solid var(--soft-line);
+            border-bottom:1px solid var(--soft-line); margin-bottom:.4rem;
+            color:#686d70; font:700 .65rem ui-monospace,monospace; letter-spacing:.06em;
+        }
+        .rg-context strong { color:var(--ink); }
+        .rg-section { margin:.35rem 0 1rem; }
+        .rg-section .rg-kicker { margin-bottom:.35rem; }
+        .rg-section-title { font-size:1.38rem; font-weight:900; letter-spacing:-.055em; color:var(--ink); margin:0; }
+        .rg-section-copy { color:#72777a; font-size:.78rem; line-height:1.5; margin:.25rem 0 0; }
+        .rg-panel {
+            background:var(--surface); border:1.2px solid var(--line); border-radius:2px;
+            padding:1rem 1.05rem; box-shadow:4px 4px 0 rgba(23,25,27,.12);
+            height:100%;
+        }
+        .rg-panel-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.75rem; }
+        .rg-panel-title { color:var(--ink); font-size:.92rem; font-weight:900; letter-spacing:-.035em; }
+        .rg-panel-tag { color:#73787b; font:700 .58rem ui-monospace,monospace; letter-spacing:.1em; }
+        .rg-stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.55rem; }
+        .rg-stat {
+            background:var(--surface); border:1.2px solid var(--line); padding:.75rem .85rem;
+            box-shadow:3px 3px 0 rgba(23,25,27,.14); min-height:83px;
+        }
+        .rg-stat-label { color:#707578; font:800 .58rem ui-monospace,monospace; letter-spacing:.12em; text-transform:uppercase; }
+        .rg-stat-value { color:var(--ink); font-size:1.7rem; font-weight:900; letter-spacing:-.07em; margin-top:.2rem; }
+        .rg-stat-note { color:#808487; font-size:.62rem; margin-top:.1rem; }
+        .rg-bar-row { display:grid; grid-template-columns:75px 1fr 24px; gap:.65rem; align-items:center; margin:.76rem 0; }
+        .rg-bar-label { color:#5e6467; font:800 .62rem ui-monospace,monospace; }
+        .rg-bar-track { height:10px; background:#e3e2dc; border:1px solid #c3c3bd; }
+        .rg-bar-fill { height:100%; background:var(--ink); }
+        .rg-bar-fill.critical { background:var(--red); }
+        .rg-bar-fill.high { background:#d48c29; }
+        .rg-bar-fill.medium { background:#748aa1; }
+        .rg-bar-fill.low { background:#aab2b8; }
+        .rg-bar-count { color:var(--ink); text-align:right; font:900 .7rem ui-monospace,monospace; }
+        .rg-table { width:100%; border-collapse:collapse; font-size:.69rem; }
+        .rg-table th {
+            padding:.55rem .55rem; text-align:left; background:#e6e5df;
+            border-bottom:1.5px solid var(--line); color:#666c6f;
+            font:800 .57rem ui-monospace,monospace; text-transform:uppercase; letter-spacing:.09em;
+        }
+        .rg-table td { padding:.58rem .55rem; border-bottom:1px solid #deddd6; color:#282c2e; vertical-align:top; }
+        .rg-table tr:last-child td { border-bottom:0; }
+        .rg-mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace !important; font-size:.66rem; }
+        .rg-pill {
+            display:inline-block; padding:.2rem .4rem; border:1px solid currentColor;
+            font:900 .55rem ui-monospace,monospace; letter-spacing:.06em; white-space:nowrap;
+        }
+        .rg-pill.critical { background:#fde4df; color:#a22e21; }
+        .rg-pill.high { background:#ffedcf; color:#8a5a14; }
+        .rg-pill.medium { background:#e3edf6; color:#395c7c; }
+        .rg-pill.low { background:#e6e9e9; color:#596368; }
+        .rg-pill.neutral { background:#eeeee8; color:#4e5558; }
+        .rg-pill.good { background:#e6f2cd; color:#465d20; }
+        .rg-relationship {
+            display:grid; grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr);
+            align-items:center; gap:.6rem; padding:.7rem .65rem;
+            border:1px solid #d2d1ca; margin:.45rem 0; background:#f3f2ec;
+        }
+        .rg-node { padding:.6rem; border:1.2px solid var(--line); background:#fff; font-size:.67rem; font-weight:800; overflow-wrap:anywhere; }
+        .rg-edge { text-align:center; color:#6c7376; font:800 .55rem ui-monospace,monospace; letter-spacing:.04em; }
+        .rg-edge:after { content:"  →"; color:var(--ink); font-size:1rem; }
+        .rg-note { color:#757a7c; font-size:.65rem; line-height:1.5; margin-top:.6rem; }
+        .rg-feature {
+            display:flex; justify-content:space-between; gap:1rem; align-items:flex-start;
+            padding:.8rem 0; border-top:1px solid #deddd6;
+        }
+        .rg-feature:first-child { border-top:0; }
+        .rg-feature strong { color:var(--ink); font-size:.77rem; }
+        .rg-feature span { color:#757a7c; font-size:.69rem; text-align:right; }
+        .rg-detail {
+            padding:1rem; border:1.5px solid var(--line); background:#f8f7f2;
+            box-shadow:4px 4px 0 rgba(23,25,27,.13); margin:.5rem 0 1rem;
+        }
+        .rg-detail-title { font-size:1.1rem; font-weight:900; letter-spacing:-.045em; color:var(--ink); }
+        .rg-detail-sub { margin-top:.3rem; font-size:.7rem; color:#72777a; }
+        .rg-footer {
+            display:flex; justify-content:space-between; flex-wrap:wrap; gap:.5rem;
+            border-top:1.5px solid var(--line); margin-top:2rem; padding-top:.8rem;
+            color:#777c7e; font:700 .58rem ui-monospace,monospace; letter-spacing:.07em;
+        }
+        @media (max-width: 900px) {
+            [data-testid="stMainBlockContainer"] { padding:1rem 1rem 2.5rem; }
+            .rg-hero { grid-template-columns:1fr; }
+            .rg-chrome-wrap { display:none; }
+            .rg-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .rg-relationship { grid-template-columns:1fr; }
+            .rg-edge { text-align:left; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def esc(value):
+    return html.escape(str(value if value is not None else ""))
+
+
+def section(kicker, title, copy=""):
+    st.markdown(
+        f'<div class="rg-section"><div class="rg-kicker">{esc(kicker)}</div>'
+        f'<div class="rg-section-title">{esc(title)}</div>'
+        f'<div class="rg-section-copy">{esc(copy)}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def table(headers, rows, empty="No records to display."):
+    if not rows:
+        st.caption(empty)
+        return
+    head = "".join(f"<th>{esc(h)}</th>" for h in headers)
+    body = "".join(
+        "<tr>" + "".join(f'<td>{esc(value)}</td>' for value in row) + "</tr>"
+        for row in rows
+    )
+    st.markdown(
+        f'<div style="overflow-x:auto"><table class="rg-table"><thead><tr>{head}</tr></thead>'
+        f"<tbody>{body}</tbody></table></div>",
+        unsafe_allow_html=True,
+    )
+
+
+def pill(value, kind="neutral"):
+    return f'<span class="rg-pill {esc(kind)}">{esc(value)}</span>'
+
+
+def severity_kind(value):
+    return str(value).lower() if str(value).lower() in {"critical", "high", "medium", "low"} else "neutral"
+
+
+def metric_grid(items):
+    cards = []
+    for label, value, note in items:
+        cards.append(
+            f'<div class="rg-stat"><div class="rg-stat-label">{esc(label)}</div>'
+            f'<div class="rg-stat-value">{esc(value)}</div>'
+            f'<div class="rg-stat-note">{esc(note)}</div></div>'
+        )
+    st.markdown('<div class="rg-stat-grid">' + "".join(cards) + "</div>", unsafe_allow_html=True)
+
+
+def distribution_panel(findings):
+    order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    counts = {level: sum(f["severity"] == level for f in findings) for level in order}
+    maximum = max(counts.values(), default=0) or 1
+    rows = []
+    for level in order:
+        width = int(counts[level] / maximum * 100) if counts[level] else 0
+        rows.append(
+            f'<div class="rg-bar-row"><div class="rg-bar-label">{level}</div>'
+            f'<div class="rg-bar-track"><div class="rg-bar-fill {level.lower()}" style="width:{width}%"></div></div>'
+            f'<div class="rg-bar-count">{counts[level]}</div></div>'
+        )
+    st.markdown('<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Severity index</div>'
+                '<div class="rg-panel-tag">FINDINGS / LEVEL</div></div>'
+                + "".join(rows) +
+                '<div class="rg-note">Distribution reflects the currently loaded synthetic scenario.</div></div>',
+                unsafe_allow_html=True)
+
+
+def relationship_panel(relationships):
+    if not relationships:
+        st.info("This scenario has no relationship edges.")
+        return
+    rows = []
+    for item in relationships:
+        rows.append(
+            '<div class="rg-relationship">'
+            f'<div class="rg-node">{esc(item["source_principal"])}</div>'
+            f'<div class="rg-edge">{esc(item["relationship_type"])}</div>'
+            f'<div class="rg-node">{esc(item["target_principal"])}</div></div>'
+        )
+    st.markdown(
+        '<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Trust-path assertions</div>'
+        '<div class="rg-panel-tag">FIXTURE GRAPH</div></div>'
+        + "".join(rows)
+        + '<div class="rg-note">Relationship edges are synthetic fixture assertions, not independently discovered trust paths.</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def finding_rows(items):
+    return [
+        [f["finding_id"], f["severity"], f["status"], f["rule_id"], f["principal"]]
+        for f in items
+    ]
+
+
+inject_theme()
 rg.initialize_prototype()
 available = rg.available_scenarios()
 loaded = rg.list_scenarios()
@@ -21,19 +428,16 @@ if not available:
 
 available_ids = {x["scenario_id"] for x in available}
 if "rg_scenario_id" not in st.session_state or st.session_state.rg_scenario_id not in available_ids:
-    st.session_state.rg_scenario_id = (
-        loaded[0]["scenario_id"] if loaded else available[0]["scenario_id"]
-    )
-
-st.title("RogueGuard")
-st.caption("Identity Exposure · Permission Intelligence · Response Planning")
-st.warning(
-    "LOCAL SYNTHETIC SIMULATION — this workbench does not connect to or modify "
-    "Google Cloud IAM, credentials, storage, secrets, or production resources."
-)
+    st.session_state.rg_scenario_id = loaded[0]["scenario_id"] if loaded else available[0]["scenario_id"]
 
 with st.sidebar:
-    st.header("Workspace")
+    st.markdown(
+        '<div style="font-size:1.3rem;font-weight:900;letter-spacing:-.06em">ROGU<span style="color:#c9f36a">E</span>GUARD'
+        '<div style="font:700 .58rem ui-monospace,monospace;letter-spacing:.16em;color:#9ea3a6;margin-top:.2rem">IDENTITY SECURITY / V0.9</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.divider()
+    st.markdown("**WORKSPACE CONTROL**")
     selected_scenario = st.selectbox(
         "Scenario fixture",
         options=[x["scenario_id"] for x in available],
@@ -41,24 +445,29 @@ with st.sidebar:
         format_func=lambda sid: next(x["name"] for x in available if x["scenario_id"] == sid),
     )
     loaded_ids = {x["scenario_id"] for x in rg.list_scenarios()}
-    if st.button("Load / analyse scenario", type="primary", use_container_width=True):
+    if st.button("LOAD / ANALYSE SCENARIO", type="primary", use_container_width=True):
         try:
             if selected_scenario not in loaded_ids:
                 info = rg.load_scenario(selected_scenario)
                 st.success(f"Loaded {info['name']}")
-            findings = rg.analyze_scenario(selected_scenario)
+            results = rg.analyze_scenario(selected_scenario)
             st.session_state.rg_scenario_id = selected_scenario
             st.session_state.rg_selected_finding = None
-            st.success(f"Analysis complete: {len(findings)} findings.")
+            st.success(f"Analysis complete: {len(results)} findings.")
             st.rerun()
         except Exception as exc:
             st.error(str(exc))
-
     st.divider()
-    st.markdown("**Prototype boundary**")
-    st.caption("All identities, bindings, actions, approvals, and evidence in this workspace are synthetic.")
-    st.caption("Response actions are simulated in the local SQLite model only.")
-    st.caption("A generated hash manifest detects changes; it is not immutable storage.")
+    st.markdown("**SIMULATION BOUNDARY**")
+    st.caption("Synthetic identities, bindings, approvals and evidence only.")
+    st.caption("Response actions affect the local SQLite model only.")
+    st.caption("Hash manifests detect changes; they are not immutable storage.")
+    st.markdown(
+        '<div style="margin-top:1.2rem;padding:.7rem;border:1px solid #565b5e;background:#202326">'
+        '<div style="font:800 .58rem ui-monospace,monospace;letter-spacing:.13em;color:#c9f36a">ENVIRONMENT</div>'
+        '<div style="font-size:.78rem;font-weight:800;margin-top:.25rem">LOCAL / SYNTHETIC</div></div>',
+        unsafe_allow_html=True,
+    )
 
 sid = st.session_state.rg_scenario_id
 loaded_now = {x["scenario_id"] for x in rg.list_scenarios()}
@@ -75,169 +484,208 @@ if not rg.list_findings(sid):
 summary = rg.dashboard_summary(sid)
 scenario_record = next((x for x in rg.list_scenarios() if x["scenario_id"] == sid), {})
 findings = rg.list_findings(sid)
+identities = rg.list_identities(sid)
+cases = rg.list_cases(sid)
+open_findings = sum(f["status"] not in {"RESOLVED", "RETESTED", "FALSE_POSITIVE"} for f in findings)
 
-m1, m2, m3, m4, m5 = st.columns(5)
-m1.metric("Identities", summary["identities"])
-m2.metric("Open findings", sum(f["status"] not in {"RESOLVED", "RETESTED", "FALSE_POSITIVE"} for f in findings))
-m3.metric("Critical", summary["critical"])
-m4.metric("High", summary["high"])
-m5.metric("Open cases", summary["open_cases"])
-
-st.caption(
-    f"Scenario: **{scenario_record.get('name', sid)}** · "
-    f"Fixture version: **{scenario_record.get('version', 'unknown')}** · "
-    f"Environment: **synthetic demo**"
+st.markdown(
+    '<div class="rg-masthead"><div class="rg-brand"><div class="rg-mark">RG/</div>'
+    '<div><div class="rg-brand-name">ROGUEGUARD</div><div class="rg-brand-sub">IDENTITY EXPOSURE / PERMISSION INTELLIGENCE</div></div></div>'
+    '<div class="rg-top-right"><div class="rg-top-label">SECURITY OPERATIONS CONSOLE</div><div class="rg-live">LOCAL SIMULATION</div></div></div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="rg-hero"><div><div class="rg-kicker">IDENTITY SECURITY WORKBENCH / 0.9</div>'
+    '<h1>See the access.<br><em>Control the exposure.</em></h1>'
+    '<p>Investigate identity posture, understand permission drift, and validate response decisions through a controlled synthetic workflow.</p></div>'
+    '<div class="rg-chrome-wrap"><div class="rg-chrome"></div></div></div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="rg-safety"><b>SIMULATION ONLY</b><span>This workbench does not connect to or modify Google Cloud IAM, credentials, storage, secrets, or production resources.</span></div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    f'<div class="rg-context"><span>ACTIVE SCENARIO <strong>{esc(scenario_record.get("name", sid))}</strong></span>'
+    f'<span>FIXTURE VERSION <strong>{esc(scenario_record.get("version", "unknown"))}</strong></span>'
+    '<span>DATA CLASS <strong>SYNTHETIC DEMO</strong></span></div>',
+    unsafe_allow_html=True,
 )
 
 overview, identities_tab, findings_tab, response_tab, cases_tab = st.tabs([
-    "Overview", "Identity explorer", "Findings", "Response lab", "Cases & evidence"
+    "01  /  OVERVIEW", "02  /  IDENTITIES", "03  /  FINDINGS",
+    "04  /  RESPONSE LAB", "05  /  CASES + EVIDENCE",
 ])
 
 with overview:
-    st.subheader("Security overview")
-    left, right = st.columns([1.1, 1])
+    section("01 / SITUATION REPORT", "Security overview", "A compact readout of identity exposure across the active scenario.")
+    metric_grid([
+        ("IDENTITIES", summary["identities"], f'{summary["active"]} active / {summary["quarantined"]} quarantined'),
+        ("OPEN FINDINGS", open_findings, f'{len(findings)} total detections'),
+        ("CRITICAL", summary["critical"], "Highest severity"),
+        ("HIGH", summary["high"], "Elevated severity"),
+    ])
+    st.write("")
+    left, right = st.columns([.88, 1.12], gap="large")
     with left:
-        st.markdown("#### Finding distribution")
-        distribution = {}
-        for f in findings:
-            distribution[f["severity"]] = distribution.get(f["severity"], 0) + 1
-        if distribution:
-            st.bar_chart(distribution)
-        else:
-            st.info("No findings. Run analysis or load another scenario.")
+        distribution_panel(findings)
     with right:
-        st.markdown("#### Finding queue")
+        st.markdown(
+            '<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Priority queue</div>'
+            f'<div class="rg-panel-tag">{len(findings)} RECORDS</div></div>',
+            unsafe_allow_html=True,
+        )
         if findings:
-            st.dataframe(
-                [{"ID": f["finding_id"], "Severity": f["severity"],
-                  "State": f["status"], "Rule": f["rule_id"],
-                  "Identity": f["principal"]} for f in findings],
-                use_container_width=True, hide_index=True
-            )
+            queue = sorted(findings, key=lambda f: (["CRITICAL", "HIGH", "MEDIUM", "LOW"].index(f["severity"])
+                                                     if f["severity"] in ["CRITICAL", "HIGH", "MEDIUM", "LOW"] else 9,
+                                                     f["finding_id"]))[:8]
+            table(["FINDING ID", "SEVERITY", "STATE", "RULE", "IDENTITY"],
+                  finding_rows(queue))
         else:
-            st.info("No findings to display.")
-
-    st.markdown("#### Identity relationship context")
-    relationships = rg.list_relationships(sid)
-    if relationships:
-        dot = ["digraph RogueGuard {", 'rankdir="LR";', 'node [shape=box, style="rounded,filled", fillcolor="#e8f1fa", color="#38546d"];']
-        principals = {i["principal"] for i in rg.list_identities(sid)}
-        for p in principals:
-            dot.append(f'"{p}" [label="{p}"];')
-        for r in relationships:
-            dot.append(f'"{r["source_principal"]}" -> "{r["target_principal"]}" [label="{r["relationship_type"]}"];')
-        dot.append("}")
-        st.graphviz_chart("\n".join(dot), use_container_width=True)
-        st.caption("Relationship edges are synthetic fixture assertions, not independently discovered trust paths.")
-    else:
-        st.info("This scenario has no relationship edges.")
-
-    st.markdown("#### Release boundary")
-    st.info(
-        "v0.9 target: investigate a finding, preview a response, obtain a separate reviewer approval, "
-        "simulate the response, verify the result, and export case evidence."
-    )
+            st.caption("No findings. Run analysis or load another scenario.")
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.write("")
+    section("02 / RELATIONSHIP CONTEXT", "Identity relationship map", "A simplified view of declared fixture relationships. These are not live-discovered trust paths.")
+    relationship_panel(rg.list_relationships(sid))
+    st.write("")
+    left, right = st.columns([1, 1], gap="large")
+    with left:
+        st.markdown(
+            '<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Response lifecycle</div>'
+            '<div class="rg-panel-tag">CONTROL SEQUENCE</div></div>'
+            '<div class="rg-feature"><strong>01 / Investigate</strong><span>Review identity and finding evidence</span></div>'
+            '<div class="rg-feature"><strong>02 / Plan</strong><span>Generate a before / after dry-run</span></div>'
+            '<div class="rg-feature"><strong>03 / Approve</strong><span>Record an independent reviewer decision</span></div>'
+            '<div class="rg-feature"><strong>04 / Verify</strong><span>Compare actual state to reviewed target</span></div></div>',
+            unsafe_allow_html=True,
+        )
+    with right:
+        st.markdown(
+            '<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Prototype boundary</div>'
+            '<div class="rg-panel-tag">READ BEFORE DEMO</div></div>'
+            '<div class="rg-feature"><strong>Execution</strong><span>Local SQLite simulation only</span></div>'
+            '<div class="rg-feature"><strong>Approval</strong><span>Distinct reviewer label; no real authentication</span></div>'
+            '<div class="rg-feature"><strong>Evidence</strong><span>Exported JSON / CSV with SHA-256 manifest</span></div>'
+            '<div class="rg-feature"><strong>Cloud integration</strong><span>Not implemented or claimed</span></div></div>',
+            unsafe_allow_html=True,
+        )
 
 with identities_tab:
-    st.subheader("Identity explorer")
-    identities = rg.list_identities(sid)
-    principal = st.selectbox("Select an identity", [x["principal"] for x in identities], key="rg_identity")
-    identity = rg.get_identity(sid, principal)
-    if identity:
-        a, b, c = st.columns(3)
-        a.metric("Lifecycle", identity["lifecycle_state"])
-        b.metric("Bindings", len(identity["bindings"]))
-        c.metric("Baseline", identity["baseline"]["approval_state"] if identity["baseline"] else "MISSING")
-        st.write("**Owner:**", identity.get("owner") or "Unassigned")
-        st.write("**Purpose:**", identity.get("purpose") or "Not documented")
-        st.write("**Identity type:**", identity["identity_type"])
-        st.write("**Environment:**", identity["environment"])
-        st.write("**Last observed:**", identity.get("last_observed_at") or "Unknown")
-        st.write("**Review due:**", identity.get("review_due_at") or "Not set")
-        st.markdown("#### Declared baseline")
-        baseline = identity["baseline"] or {}
-        st.write("**Version:**", baseline.get("version", "n/a"))
-        st.write("**Rationale:**", baseline.get("rationale") or "No rationale supplied")
-        st.write("**Required roles:**", ", ".join(baseline.get("required_roles", [])) or "None")
-        st.markdown("#### Resource-level bindings")
-        if identity["bindings"]:
-            st.dataframe(
-                [{"Role": x["role"], "Resource": x["resource_name"],
-                  "Resource ID": x["resource_id"], "Scope": x["resource_type"],
-                  "Sensitivity": x["sensitivity"], "Source": x["source"],
-                  "Condition": x["condition"] or "None",
-                  "Inherited": bool(x["inherited"])} for x in identity["bindings"]],
-                use_container_width=True, hide_index=True
+    section("02 / INVENTORY", "Identity explorer", "Inspect identity ownership, declared intent, lifecycle and resource-level access.")
+    if identities:
+        principal = st.selectbox("SELECT IDENTITY", [x["principal"] for x in identities], key="rg_identity")
+        identity = rg.get_identity(sid, principal)
+        if identity:
+            baseline = identity["baseline"] or {}
+            st.markdown(
+                f'<div class="rg-detail"><div class="rg-kicker">IDENTITY RECORD / {esc(identity["identity_type"])}</div>'
+                f'<div class="rg-detail-title">{esc(principal)}</div>'
+                f'<div class="rg-detail-sub">{esc(identity.get("purpose") or "Purpose not documented")}</div></div>',
+                unsafe_allow_html=True,
             )
-        else:
-            st.info("No bindings are recorded for this identity.")
+            a, b, c = st.columns(3)
+            a.metric("Lifecycle", identity["lifecycle_state"])
+            b.metric("Resource bindings", len(identity["bindings"]))
+            c.metric("Baseline approval", baseline.get("approval_state", "MISSING"))
+            left, right = st.columns([1, 1], gap="large")
+            with left:
+                st.markdown('<div class="rg-panel"><div class="rg-panel-title">Ownership & context</div>', unsafe_allow_html=True)
+                table(["ATTRIBUTE", "VALUE"], [
+                    ["Owner", identity.get("owner") or "Unassigned"],
+                    ["Identity type", identity["identity_type"]],
+                    ["Environment", identity["environment"]],
+                    ["Last observed", identity.get("last_observed_at") or "Unknown"],
+                    ["Review due", identity.get("review_due_at") or "Not set"],
+                ])
+                st.markdown("</div>", unsafe_allow_html=True)
+            with right:
+                st.markdown('<div class="rg-panel"><div class="rg-panel-title">Declared baseline</div>', unsafe_allow_html=True)
+                table(["ATTRIBUTE", "VALUE"], [
+                    ["Version", baseline.get("version", "n/a")],
+                    ["Rationale", baseline.get("rationale") or "No rationale supplied"],
+                    ["Required roles", ", ".join(baseline.get("required_roles", [])) or "None"],
+                ])
+                st.markdown("</div>", unsafe_allow_html=True)
+            st.write("")
+            st.markdown('<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Resource-level bindings</div>'
+                        f'<div class="rg-panel-tag">{len(identity["bindings"])} BINDINGS</div></div>', unsafe_allow_html=True)
+            table(["ROLE", "RESOURCE", "SCOPE", "SENSITIVITY", "SOURCE", "CONDITION", "INHERITED"], [
+                [x["role"], x["resource_name"], x["resource_type"], x["sensitivity"],
+                 x["source"], x["condition"] or "None", "YES" if x["inherited"] else "NO"]
+                for x in identity["bindings"]
+            ], empty="No bindings are recorded for this identity.")
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.info("No identities are available in this scenario.")
 
 with findings_tab:
-    st.subheader("Finding inbox")
+    section("03 / DETECTION", "Finding inbox", "Filter, triage and group synthetic detection results into an investigation case.")
     filter_row = st.columns(4)
     status_options = ["ALL", "NEW", "TRIAGED", "ACCEPTED", "FALSE_POSITIVE",
                       "REMEDIATION_PLANNED", "CONTAINED", "RESOLVED", "RETESTED"]
-    chosen_status = filter_row[0].selectbox("State", status_options)
+    chosen_status = filter_row[0].selectbox("STATE", status_options)
     severity_options = ["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"]
-    chosen_severity = filter_row[1].selectbox("Severity", severity_options)
-    owners = sorted({i.get("owner") or "Unassigned" for i in rg.list_identities(sid)})
-    chosen_owner = filter_row[2].selectbox("Owner", ["ALL"] + owners)
-    search_text = filter_row[3].text_input("Search identity / rule")
+    chosen_severity = filter_row[1].selectbox("SEVERITY", severity_options)
+    owners = sorted({i.get("owner") or "Unassigned" for i in identities})
+    chosen_owner = filter_row[2].selectbox("OWNER", ["ALL"] + owners)
+    search_text = filter_row[3].text_input("SEARCH IDENTITY / RULE")
     visible = findings
     if chosen_status != "ALL":
         visible = [f for f in visible if f["status"] == chosen_status]
     if chosen_severity != "ALL":
         visible = [f for f in visible if f["severity"] == chosen_severity]
     if chosen_owner != "ALL":
-        owner_lookup = {i["principal"]: i.get("owner") or "Unassigned" for i in rg.list_identities(sid)}
+        owner_lookup = {i["principal"]: i.get("owner") or "Unassigned" for i in identities}
         visible = [f for f in visible if owner_lookup.get(f["principal"], "Unassigned") == chosen_owner]
     if search_text.strip():
         term = search_text.strip().casefold()
         visible = [f for f in visible if term in f["principal"].casefold()
-                   or term in f["rule_id"].casefold()
-                   or term in f["title"].casefold()]
+                   or term in f["rule_id"].casefold() or term in f["title"].casefold()]
     st.caption(f"Showing {len(visible)} of {len(findings)} findings.")
     if visible:
-        st.dataframe(
-            [{"ID": f["finding_id"], "Severity": f["severity"],
-              "Confidence": f["confidence"], "State": f["status"],
-              "Rule": f["rule_id"], "Identity": f["principal"],
-              "Resource": f["resource_id"] or "Identity metadata",
-              "Finding": f["title"]} for f in visible],
-            use_container_width=True, hide_index=True
-        )
+        table(["FINDING ID", "SEVERITY", "STATE", "RULE", "IDENTITY"], finding_rows(visible))
         finding_ids = [f["finding_id"] for f in visible]
         selected_fid = st.selectbox(
-            "Inspect finding",
-            finding_ids,
+            "INSPECT FINDING", finding_ids,
             format_func=lambda fid: next(
-                f"{x['severity']} · {x['title']} · {x['principal']}"
+                f'{x["severity"]}  /  {x["title"]}  /  {x["principal"]}'
                 for x in visible if x["finding_id"] == fid
             ),
         )
         detail = next(x for x in visible if x["finding_id"] == selected_fid)
-        st.markdown(f"### {detail['title']}")
-        st.write(detail["description"])
+        st.markdown(
+            f'<div class="rg-detail"><div class="rg-kicker">{esc(detail["rule_id"])} / {esc(detail["finding_id"])}</div>'
+            f'<div class="rg-detail-title">{esc(detail["title"])}</div>'
+            f'<div class="rg-detail-sub">{esc(detail["description"])}</div></div>',
+            unsafe_allow_html=True,
+        )
         d1, d2, d3 = st.columns(3)
         d1.metric("Severity", detail["severity"])
         d2.metric("Evidence confidence", detail["confidence"])
         d3.metric("Workflow state", detail["status"])
-        st.write("**Rule:**", detail["rule_id"])
-        st.write("**Recommendation:**", detail["recommendation"])
-        st.json(detail["evidence"])
+        left, right = st.columns([1, 1], gap="large")
+        with left:
+            st.markdown("**RECOMMENDATION**")
+            st.write(detail["recommendation"])
+        with right:
+            st.markdown("**EVIDENCE SNAPSHOT**")
+            with st.expander("Inspect structured evidence"):
+                st.json(detail["evidence"])
         with st.expander("Decision history"):
             history = rg.list_finding_history(selected_fid)
-            if history:
-                st.dataframe(history, use_container_width=True, hide_index=True)
-            else:
-                st.caption("No analyst state changes recorded for this finding yet.")
+            table(["ACTOR", "FROM", "TO", "REASON", "TIMESTAMP"], [
+                [h["actor"], h["old_status"], h["new_status"], h["reason"], h["created_at"]]
+                for h in history
+            ], empty="No analyst state changes recorded yet.")
         allowed = sorted(rg.FINDING_TRANSITIONS.get(detail["status"], set()))
         if allowed:
+            st.markdown("#### Update finding state")
             with st.form("finding_transition_form"):
-                next_state = st.selectbox("Move finding to", allowed)
-                actor = st.text_input("Analyst", value="analyst")
-                reason = st.text_input("Reason for state change")
-                submitted = st.form_submit_button("Update finding state")
+                c1, c2 = st.columns(2)
+                next_state = c1.selectbox("MOVE TO", allowed)
+                actor = c2.text_input("ANALYST", value="analyst")
+                reason = st.text_input("REASON FOR STATE CHANGE")
+                submitted = st.form_submit_button("UPDATE FINDING STATE")
             if submitted:
                 try:
                     rg.update_finding_status(selected_fid, next_state, actor, reason)
@@ -247,21 +695,21 @@ with findings_tab:
                     st.error(str(exc))
         else:
             st.caption("No further state transition is available from this state.")
-
         st.divider()
-        st.markdown("#### Open a case from selected findings")
+        section("CASE MANAGEMENT", "Create investigation case", "Group related findings so the response workflow and evidence remain linked.")
         selected_for_case = st.multiselect(
-            "Findings to group into a case",
+            "FINDINGS TO INCLUDE",
             [x["finding_id"] for x in findings if x["status"] not in {"FALSE_POSITIVE", "RETESTED"}],
             default=[selected_fid],
             format_func=lambda fid: next(
-                f"{x['severity']} · {x['title']}" for x in findings if x["finding_id"] == fid
+                f'{x["severity"]}  /  {x["title"]}' for x in findings if x["finding_id"] == fid
             ),
         )
         with st.form("create_case_form"):
-            title = st.text_input("Case title", value=f"Review: {detail['principal']}")
-            creator = st.text_input("Case creator", value="analyst")
-            create_submitted = st.form_submit_button("Create case")
+            c1, c2 = st.columns(2)
+            title = c1.text_input("CASE TITLE", value=f'Review: {detail["principal"]}')
+            creator = c2.text_input("CASE CREATOR", value="analyst")
+            create_submitted = st.form_submit_button("CREATE CASE")
         if create_submitted:
             try:
                 case_id = rg.create_case(sid, title, creator, selected_for_case)
@@ -269,39 +717,45 @@ with findings_tab:
             except Exception as exc:
                 st.error(str(exc))
     else:
-        st.info("No findings match this filter.")
+        st.info("No findings match the selected filters.")
 
 with response_tab:
-    st.subheader("Response planning lab")
-    st.caption("Two-person approval is required. Execution changes only the local synthetic dataset.")
+    section("04 / CONTROL", "Response planning lab", "Generate a dry-run, require independent review, simulate the action and verify the resulting state.")
+    st.markdown(
+        '<div class="rg-safety"><b>LOCAL EXECUTION</b><span>Approval and execution below change the synthetic SQLite model only. They do not change cloud permissions.</span></div>',
+        unsafe_allow_html=True,
+    )
     cases = rg.list_cases(sid)
     if not cases:
         st.info("Create a case from one or more findings before planning a response.")
     else:
         case_ids = [x["case_id"] for x in cases]
-        chosen_case = st.selectbox("Case", case_ids, format_func=lambda cid: next(
-            f"{x['case_id']} · {x['title']} · {x['status']}" for x in cases if x["case_id"] == cid
-        ), key="response_case")
+        chosen_case = st.selectbox(
+            "SELECT CASE", case_ids,
+            format_func=lambda cid: next(
+                f'{x["case_id"]}  /  {x["title"]}  /  {x["status"]}' for x in cases if x["case_id"] == cid
+            ), key="response_case"
+        )
         case = rg.get_case(chosen_case)
         case_principals = sorted({f["principal"] for f in case["findings"]})
         if not case_principals:
-            case_principals = [x["principal"] for x in rg.list_identities(sid)]
+            case_principals = [x["principal"] for x in identities]
         with st.form("create_plan_form"):
-            target = st.selectbox("Target identity", case_principals)
+            target = st.selectbox("TARGET IDENTITY", case_principals)
+            action_options = ["REMOVE_EXCESS", "QUARANTINE"] + (
+                ["REACTIVATE"] if rg.get_identity(sid, target)["lifecycle_state"] == "QUARANTINED" else []
+            )
             action = st.selectbox(
-                "Response action",
-                ["REMOVE_EXCESS", "QUARANTINE"] + (
-                    ["REACTIVATE"] if rg.get_identity(sid, target)["lifecycle_state"] == "QUARANTINED" else []
-                ),
+                "RESPONSE ACTION", action_options,
                 format_func=lambda x: {
                     "REMOVE_EXCESS": "Remove excess permissions only",
                     "QUARANTINE": "Quarantine identity only",
-                    "REACTIVATE": "Reactivate after remediation only"
-                }[x]
+                    "REACTIVATE": "Reactivate after remediation only",
+                }[x],
             )
-            reason = st.text_area("Operator reason", placeholder="Explain why this simulated action is appropriate.")
-            creator = st.text_input("Plan creator", value="analyst")
-            plan_submitted = st.form_submit_button("Generate dry-run plan")
+            reason = st.text_area("OPERATOR REASON", placeholder="Explain why this simulated action is appropriate.")
+            creator = st.text_input("PLAN CREATOR", value="analyst")
+            plan_submitted = st.form_submit_button("GENERATE DRY-RUN PLAN")
         if plan_submitted:
             try:
                 related_ids = [f["finding_id"] for f in case["findings"] if f["principal"] == target]
@@ -311,30 +765,34 @@ with response_tab:
                 st.rerun()
             except Exception as exc:
                 st.error(str(exc))
-
         plans = rg.list_plans(chosen_case)
         if plans:
             plan_ids = [p["plan_id"] for p in plans]
             default_plan = st.session_state.get("rg_plan_id")
             index = plan_ids.index(default_plan) if default_plan in plan_ids else 0
-            chosen_plan = st.selectbox("Review existing plan", plan_ids, index=index, key="review_plan")
+            chosen_plan = st.selectbox("REVIEW EXISTING PLAN", plan_ids, index=index, key="review_plan")
             plan = rg.get_plan(chosen_plan)
-            st.write("**Action:**", plan["action_type"])
-            st.write("**Status:**", plan["status"])
-            st.write("**Reason:**", plan["reason"])
-            before, after = st.columns(2)
+            st.markdown(
+                f'<div class="rg-detail"><div class="rg-kicker">ACTION PLAN / {esc(plan["plan_id"])}</div>'
+                f'<div class="rg-detail-title">{esc(plan["action_type"])}</div>'
+                f'<div class="rg-detail-sub">STATUS: {esc(plan["status"])} &nbsp; / &nbsp; CREATED BY: {esc(plan["created_by"])}</div>'
+                f'<div class="rg-detail-sub">RATIONALE: {esc(plan["reason"])}</div></div>',
+                unsafe_allow_html=True,
+            )
             def binding_rows(snapshot):
-                return [{"Role": b["role"], "Resource": b["resource_id"],
-                         "Source": b["source"], "Condition": b.get("condition") or "None"}
+                return [[b["role"], b["resource_id"], b["source"], b.get("condition") or "None"]
                         for b in snapshot["bindings"]]
+            before, after = st.columns(2, gap="large")
             with before:
-                st.markdown("#### Before")
+                st.markdown('<div class="rg-panel"><div class="rg-panel-title">01 / BEFORE STATE</div>', unsafe_allow_html=True)
                 st.metric("Bindings", len(plan["before"]["bindings"]))
-                st.dataframe(binding_rows(plan["before"]), use_container_width=True, hide_index=True)
+                table(["ROLE", "RESOURCE", "SOURCE", "CONDITION"], binding_rows(plan["before"]))
+                st.markdown("</div>", unsafe_allow_html=True)
             with after:
-                st.markdown("#### Proposed after")
+                st.markdown('<div class="rg-panel"><div class="rg-panel-title">02 / PROPOSED STATE</div>', unsafe_allow_html=True)
                 st.metric("Bindings", len(plan["after"]["bindings"]))
-                st.dataframe(binding_rows(plan["after"]), use_container_width=True, hide_index=True)
+                table(["ROLE", "RESOURCE", "SOURCE", "CONDITION"], binding_rows(plan["after"]))
+                st.markdown("</div>", unsafe_allow_html=True)
             changed_bindings = len(plan["before"]["bindings"]) - len(plan["after"]["bindings"])
             if plan["action_type"] == "QUARANTINE":
                 st.info("Impact preview: identity lifecycle state changes to QUARANTINED; role bindings remain unchanged.")
@@ -342,14 +800,14 @@ with response_tab:
                 st.info("Impact preview: identity lifecycle state changes to ACTIVE; no permissions are restored.")
             else:
                 st.info(f"Impact preview: {max(changed_bindings, 0)} binding(s) will be removed in the local simulator.")
-
             if plan["status"] == "PENDING_APPROVAL":
                 st.markdown("#### Independent review")
                 with st.form("approval_form"):
-                    reviewer = st.text_input("Reviewer (must differ from creator)", value="reviewer")
-                    decision = st.selectbox("Decision", ["APPROVED", "REJECTED"])
-                    approval_reason = st.text_input("Review rationale")
-                    approval_submitted = st.form_submit_button("Record review decision")
+                    c1, c2 = st.columns(2)
+                    reviewer = c1.text_input("REVIEWER (MUST DIFFER FROM CREATOR)", value="reviewer")
+                    decision = c2.selectbox("DECISION", ["APPROVED", "REJECTED"])
+                    approval_reason = st.text_input("REVIEW RATIONALE")
+                    approval_submitted = st.form_submit_button("RECORD REVIEW DECISION")
                 if approval_submitted:
                     try:
                         rg.approve_action_plan(chosen_plan, reviewer, decision, approval_reason)
@@ -358,12 +816,12 @@ with response_tab:
                     except Exception as exc:
                         st.error(str(exc))
             elif plan["status"] == "APPROVED":
-                operator = st.text_input("Execution operator", value="operator", key="execute_actor")
+                operator = st.text_input("EXECUTION OPERATOR", value="operator", key="execute_actor")
                 execution_confirmed = st.checkbox(
-                    "I reviewed the before/after diff and approve this local simulation action.",
-                    key=f"execution_confirm_{chosen_plan}"
+                    "I reviewed the before / after diff and approve this local simulation action.",
+                    key=f"execution_confirm_{chosen_plan}",
                 )
-                if st.button("Execute simulated action", type="primary", disabled=not execution_confirmed):
+                if st.button("EXECUTE SIMULATED ACTION", type="primary", disabled=not execution_confirmed):
                     try:
                         rg.execute_action_plan(chosen_plan, operator)
                         st.success("Local simulation action executed.")
@@ -371,50 +829,63 @@ with response_tab:
                     except Exception as exc:
                         st.error(str(exc))
             elif plan["status"] == "EXECUTED":
-                verifier = st.text_input("Verifier", value="verifier", key="verify_actor")
-                if st.button("Verify post-action state"):
+                verifier = st.text_input("VERIFIER", value="verifier", key="verify_actor")
+                if st.button("VERIFY POST-ACTION STATE", type="primary"):
                     try:
                         result = rg.verify_action_plan(chosen_plan, verifier)
-                        st.success(f"Verification: {result['result']}")
+                        st.success(f'Verification: {result["result"]}')
                         st.rerun()
                     except Exception as exc:
                         st.error(str(exc))
             elif plan["status"] in {"VERIFIED", "FAILED", "REJECTED"}:
-                st.info(f"Plan is finalised with status: {plan['status']}")
+                st.info(f'Plan finalised with status: {plan["status"]}')
             if plan["approvals"]:
                 st.markdown("#### Approval history")
-                st.dataframe(plan["approvals"], use_container_width=True, hide_index=True)
+                table(["REVIEWER", "DECISION", "RATIONALE", "TIMESTAMP"], [
+                    [a["reviewer"], a["decision"], a["reason"], a["created_at"]]
+                    for a in plan["approvals"]
+                ])
 
 with cases_tab:
-    st.subheader("Cases and evidence")
+    section("05 / EVIDENCE", "Cases & evidence", "Track investigation state, inspect response events and export a portable case bundle.")
     cases = rg.list_cases(sid)
     if not cases:
         st.info("No cases have been created for this scenario yet.")
     else:
-        selected_case_id = st.selectbox("Select case", [x["case_id"] for x in cases],
-            format_func=lambda cid: next(f"{x['case_id']} · {x['title']} · {x['status']}" for x in cases if x["case_id"] == cid),
-            key="evidence_case")
+        selected_case_id = st.selectbox(
+            "SELECT CASE", [x["case_id"] for x in cases],
+            format_func=lambda cid: next(
+                f'{x["case_id"]}  /  {x["title"]}  /  {x["status"]}' for x in cases if x["case_id"] == cid
+            ), key="evidence_case"
+        )
         case = rg.get_case(selected_case_id)
-        st.write("**Created by:**", case["created_by"])
-        st.write("**Created:**", case["created_at"])
-        st.write("**Current state:**", case["status"])
-        st.markdown("#### Included findings")
-        if case["findings"]:
-            st.dataframe([{"ID":f["finding_id"],"Severity":f["severity"],"State":f["status"],
-                "Rule":f["rule_id"],"Principal":f["principal"],"Title":f["title"]}
-                for f in case["findings"]], use_container_width=True, hide_index=True)
+        metric_grid([
+            ("CASE STATE", case["status"], "Investigation lifecycle"),
+            ("LINKED FINDINGS", len(case["findings"]), "Evidence references"),
+            ("CREATED BY", case["created_by"], "Case owner label"),
+            ("TIMELINE EVENTS", len(rg.list_events(selected_case_id)), "Recorded local events"),
+        ])
+        st.write("")
+        st.markdown('<div class="rg-panel"><div class="rg-panel-head"><div class="rg-panel-title">Linked findings</div>'
+                    '<div class="rg-panel-tag">CASE CONTENTS</div></div>', unsafe_allow_html=True)
+        table(["FINDING ID", "SEVERITY", "STATE", "RULE", "PRINCIPAL", "TITLE"], [
+            [f["finding_id"], f["severity"], f["status"], f["rule_id"], f["principal"], f["title"]]
+            for f in case["findings"]
+        ])
+        st.markdown("</div>", unsafe_allow_html=True)
         with st.expander("Case timeline"):
             events = rg.list_events(selected_case_id)
-            if events:
-                st.dataframe(events, use_container_width=True, hide_index=True)
-            else:
-                st.info("No response events have been recorded yet.")
-        c1, c2 = st.columns(2)
+            table(["EVENT", "ACTOR", "ACTION", "DETAIL", "STATUS", "TIMESTAMP"], [
+                [e["event_id"], e["actor"], e["event_type"], e["reason"], e["status"], e["created_at"]]
+                for e in events
+            ], empty="No response events have been recorded yet.")
+        c1, c2 = st.columns(2, gap="large")
         with c1:
+            st.markdown("#### Case state")
             case_state_options = sorted(rg.CASE_TRANSITIONS.get(case["status"], set()))
             if case_state_options:
-                new_case_state = st.selectbox("Case state", case_state_options)
-                if st.button("Update case state"):
+                new_case_state = st.selectbox("MOVE CASE TO", case_state_options)
+                if st.button("UPDATE CASE STATE"):
                     try:
                         rg.update_case_status(selected_case_id, new_case_state)
                         st.success("Case state updated.")
@@ -424,8 +895,9 @@ with cases_tab:
             else:
                 st.caption("This case is closed. Reopen it to continue working.")
         with c2:
+            st.markdown("#### Evidence export")
             redact = st.checkbox("Redact sensitive strings in export", value=True)
-            if st.button("Export case evidence bundle", type="primary"):
+            if st.button("EXPORT CASE EVIDENCE BUNDLE", type="primary"):
                 try:
                     paths = rg.export_case_bundle(selected_case_id, redact=redact)
                     st.session_state.rg_export_paths = paths
@@ -435,19 +907,25 @@ with cases_tab:
         if st.session_state.get("rg_export_paths"):
             paths = st.session_state.rg_export_paths
             st.markdown("#### Download evidence")
-            for label, key in [("Case JSON","json"),("Findings CSV","csv"),("SHA-256 manifest","manifest")]:
+            cols = st.columns(3)
+            for col, label, key in zip(
+                cols, ["CASE JSON", "FINDINGS CSV", "SHA-256 MANIFEST"],
+                ["json", "csv", "manifest"]
+            ):
                 path = paths.get(key)
                 if path and Path(path).exists():
-                    st.download_button(
-                        f"Download {label}",
-                        data=Path(path).read_bytes(),
-                        file_name=Path(path).name,
-                        mime="application/json" if key != "csv" else "text/csv",
-                        key=f"download_{key}"
-                    )
+                    with col:
+                        st.download_button(
+                            label,
+                            data=Path(path).read_bytes(),
+                            file_name=Path(path).name,
+                            mime="application/json" if key != "csv" else "text/csv",
+                            key=f"download_{key}",
+                            use_container_width=True,
+                        )
 
-st.divider()
-st.caption(
-    "RogueGuard v0.9 final-prototype workbench · Synthetic data only · "
-    "A local hash manifest is not immutable storage · Cloud integration is not implemented."
+st.markdown(
+    '<div class="rg-footer"><span>ROGUEGUARD / V0.9 FINAL-PROTOTYPE WORKBENCH</span>'
+    '<span>SYNTHETIC DATA ONLY</span><span>CLOUD INTEGRATION NOT IMPLEMENTED</span></div>',
+    unsafe_allow_html=True,
 )
