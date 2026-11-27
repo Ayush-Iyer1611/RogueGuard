@@ -359,7 +359,11 @@ with response_tab:
                         st.error(str(exc))
             elif plan["status"] == "APPROVED":
                 operator = st.text_input("Execution operator", value="operator", key="execute_actor")
-                if st.button("Execute simulated action", type="primary"):
+                execution_confirmed = st.checkbox(
+                    "I reviewed the before/after diff and approve this local simulation action.",
+                    key=f"execution_confirm_{chosen_plan}"
+                )
+                if st.button("Execute simulated action", type="primary", disabled=not execution_confirmed):
                     try:
                         rg.execute_action_plan(chosen_plan, operator)
                         st.success("Local simulation action executed.")
