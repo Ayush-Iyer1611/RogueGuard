@@ -682,6 +682,25 @@ def inject_theme():
             font-weight: 800 !important;
             letter-spacing: .06em !important;
         }
+        /* Streamlit applies the sidebar's white foreground to descendants too.
+           Override the button and its inner label explicitly for lime contrast. */
+        [data-testid="stSidebar"] [data-testid="stButton"] button,
+        [data-testid="stSidebar"] [data-testid="stButton"] button *,
+        [data-testid="stSidebar"] [data-testid="stButton"] button p,
+        [data-testid="stSidebar"] [data-testid="stButton"] button span {
+            color: #17191b !important;
+            -webkit-text-fill-color: #17191b !important;
+            opacity: 1 !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stButton"] button {
+            background: #c9f36a !important;
+            border-color: #101213 !important;
+            text-shadow: none !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stButton"] button:hover,
+        [data-testid="stSidebar"] [data-testid="stButton"] button:focus {
+            background: #d9ff83 !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
