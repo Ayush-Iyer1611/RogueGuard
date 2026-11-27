@@ -434,6 +434,10 @@ def create_case(scenario_id: str, title: str, actor: str, finding_ids: list[str]
         for fid in finding_ids:
             con.execute("UPDATE rg_findings SET status='TRIAGED',updated_at=? WHERE finding_id=? AND status='NEW'",
                         (now, fid))
+        con.execute("INSERT INTO rg_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            ("EVT-" + uuid.uuid4().hex[:12].upper(), case_id, None,
+             "MULTIPLE", actor.strip(), "CASE_CREATED", title.strip(),
+             None, json.dumps({"finding_ids": finding_ids}), "RECORDED", now))
     return case_id
 
 def list_cases(scenario_id: str | None = None) -> list[dict[str, Any]]:
@@ -446,7 +450,8 @@ def list_cases(scenario_id: str | None = None) -> list[dict[str, Any]]:
             rows = con.execute("SELECT * FROM rg_cases ORDER BY created_at DESC")
         return [dict(r) for r in rows]
 
-def update_case_status(case_id: str, new_status: str) -> None:
+def update_case_status(case_id: str, new_status: str, actor: str = "analyst",
+                       reason: str = "Case status updated") -> None:
     initialize_prototype()
     with _connect() as con:
         row = con.execute("SELECT status FROM rg_cases WHERE case_id=?", (case_id,)).fetchone()
@@ -454,8 +459,15 @@ def update_case_status(case_id: str, new_status: str) -> None:
             raise ValueError("Case does not exist.")
         if new_status not in CASE_TRANSITIONS.get(row["status"], set()):
             raise ValueError(f"Invalid case transition: {row['status']} -> {new_status}")
+        now = _utc()
         con.execute("UPDATE rg_cases SET status=?,updated_at=? WHERE case_id=?",
-                    (new_status, _utc(), case_id))
+                    (new_status, now, case_id))
+        con.execute("INSERT INTO rg_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            ("EVT-" + uuid.uuid4().hex[:12].upper(), case_id, None,
+             "CASE", actor.strip() or "analyst", "CASE_STATE_CHANGE",
+             reason.strip() or "Case status updated",
+             json.dumps({"status": row["status"]}),
+             json.dumps({"status": new_status}), "RECORDED", now))
 
 def _snapshot(con: sqlite3.Connection, scenario_id: str, principal: str) -> dict[str, Any]:
     identity = con.execute("SELECT * FROM rg_identities WHERE scenario_id=? AND principal=?",
@@ -503,6 +515,11 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
                     (plan_id, case_id, case["scenario_id"], principal, action_type,
                      reason.strip(), actor.strip(), json.dumps(before, sort_keys=True),
                      json.dumps(after, sort_keys=True), "PENDING_APPROVAL", now, None))
+        con.execute("INSERT INTO rg_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            ("EVT-" + uuid.uuid4().hex[:12].upper(), case_id, plan_id,
+             principal, actor.strip(), "DRY_RUN_CREATED", reason.strip(),
+             json.dumps(before, sort_keys=True), json.dumps(after, sort_keys=True),
+             "PENDING_APPROVAL", now))
         for fid in (finding_ids or []):
             con.execute("INSERT OR IGNORE INTO rg_case_findings VALUES(?,?)", (case_id, fid))
             con.execute("UPDATE rg_findings SET status='REMEDIATION_PLANNED',updated_at=? WHERE finding_id=? AND status IN ('NEW','TRIAGED')",
@@ -530,6 +547,11 @@ def approve_action_plan(plan_id: str, reviewer: str, decision: str, reason: str)
                      reviewer.strip(), decision, reason.strip(), _utc()))
         con.execute("UPDATE rg_action_plans SET status=? WHERE plan_id=?",
                     ("APPROVED" if decision == "APPROVED" else "REJECTED", plan_id))
+        con.execute("INSERT INTO rg_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            ("EVT-" + uuid.uuid4().hex[:12].upper(), plan["case_id"], plan_id,
+             plan["principal"], reviewer.strip(), "APPROVAL_DECISION",
+             reason.strip(), None, json.dumps({"decision": decision}),
+             decision, _utc()))
 
 def execute_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
     initialize_prototype()
@@ -586,15 +608,24 @@ def verify_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
             ("EVT-" + uuid.uuid4().hex[:12].upper(), plan["case_id"], plan_id,
              plan["principal"], actor, "POST_ACTION_VERIFICATION", "Compare actual state with reviewed plan",
              plan["after_json"], json.dumps(actual, sort_keys=True), result, _utc()))
-        if passed and plan["action_type"] == "REMOVE_EXCESS":
-            con.execute("UPDATE rg_findings SET status='RESOLVED',updated_at=? WHERE finding_id IN (SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status='REMEDIATION_PLANNED'",
-                        (_utc(), plan["case_id"], plan["principal"]))
-        elif passed and plan["action_type"] == "QUARANTINE":
-            con.execute("UPDATE rg_findings SET status='CONTAINED',updated_at=? WHERE finding_id IN (SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status='REMEDIATION_PLANNED'",
-                        (_utc(), plan["case_id"], plan["principal"]))
-        elif passed and plan["action_type"] == "REACTIVATE":
-            con.execute("UPDATE rg_findings SET status='TRIAGED',updated_at=? WHERE finding_id IN (SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status='CONTAINED'",
-                        (_utc(), plan["case_id"], plan["principal"]))
+        if passed and plan["action_type"] in {"REMOVE_EXCESS", "QUARANTINE", "REACTIVATE"}:
+            if plan["action_type"] == "REMOVE_EXCESS":
+                old_state, new_state = "REMEDIATION_PLANNED", "RESOLVED"
+            elif plan["action_type"] == "QUARANTINE":
+                old_state, new_state = "REMEDIATION_PLANNED", "CONTAINED"
+            else:
+                old_state, new_state = "CONTAINED", "TRIAGED"
+            affected = [dict(r) for r in con.execute(
+                "SELECT finding_id,status FROM rg_findings WHERE finding_id IN "
+                "(SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status=?",
+                (plan["case_id"], plan["principal"], old_state))]
+            now = _utc()
+            for finding in affected:
+                con.execute("UPDATE rg_findings SET status=?,updated_at=? WHERE finding_id=?",
+                            (new_state, now, finding["finding_id"]))
+                con.execute("INSERT INTO rg_finding_history VALUES(?,?,?,?,?,?,?)",
+                    ("FH-" + uuid.uuid4().hex[:12].upper(), finding["finding_id"],
+                     actor, old_state, new_state, "Updated by verified response action", now))
         return {"plan_id": plan_id, "result": result, "expected": expected, "actual": actual}
 
 def list_plans(case_id: str | None = None) -> list[dict[str, Any]]:
