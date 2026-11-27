@@ -1,0 +1,111 @@
+<style>
+#rg-boot-screen {
+  position: fixed; inset: 0; z-index: 999999; display: flex; align-items: center;
+  justify-content: center; background: #17191b; color: #f5f4ed;
+  transition: opacity .55s ease, visibility .55s ease;
+}
+#rg-boot-screen.rg-boot-out { opacity: 0; visibility: hidden; pointer-events: none; }
+#rg-boot-screen .rg-boot-inner { width: min(520px, 82vw); }
+#rg-boot-screen .rg-boot-mark { color: #c9f36a; font: 900 4rem/.85 'Barlow Condensed', Impact, sans-serif; letter-spacing: -.04em; }
+#rg-boot-screen .rg-boot-label { margin-top: 1.2rem; color: #c5c8c7; font: 700 .65rem 'IBM Plex Mono', monospace; letter-spacing: .18em; }
+#rg-boot-screen .rg-boot-track { height: 3px; background: #44494a; margin-top: 1.4rem; overflow: hidden; }
+#rg-boot-screen .rg-boot-progress { height: 100%; width: 0; background: #c9f36a; animation: rg-boot-progress 1.35s cubic-bezier(.7,0,.2,1) forwards; }
+@keyframes rg-boot-progress { to { width: 100%; } }
+@keyframes rg-reveal { from { opacity: 0; transform: translateY(22px); filter: blur(7px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+@keyframes rg-chrome-float { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-13px) rotate(5deg); } }
+@keyframes rg-ring-spin { to { transform: rotate(332deg); } }
+@keyframes rg-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,243,106,.0); } 50% { box-shadow: 0 0 0 7px rgba(201,243,106,.18); } }
+@keyframes rg-scan { from { transform: translateX(-110%); } to { transform: translateX(220%); } }
+body:after {
+  content: ""; position: fixed; z-index: 998; pointer-events: none; width: 34rem; height: 34rem;
+  left: var(--rg-mouse-x, -1000px); top: var(--rg-mouse-y, -1000px);
+  transform: translate(-50%,-50%);
+  background: radial-gradient(circle, rgba(201,243,106,.105) 0%, rgba(201,243,106,.035) 33%, transparent 68%);
+}
+#rg-cursor-ring {
+  position: fixed; z-index: 999999; width: 27px; height: 27px; border: 1px solid rgba(90,113,52,.72);
+  border-radius: 50%; pointer-events: none; transform: translate(-50%,-50%);
+  transition: width .18s ease, height .18s ease, background .18s ease;
+  opacity: 0; mix-blend-mode: multiply;
+}
+#rg-cursor-ring.rg-cursor-visible { opacity: 1; }
+#rg-cursor-ring.rg-cursor-hover { width: 54px; height: 54px; background: rgba(201,243,106,.12); }
+.rg-hero, .rg-panel, .rg-stat, .rg-detail, .rg-masthead, .rg-safety, .rg-context {
+  animation: rg-reveal .72s cubic-bezier(.2,.75,.25,1) both;
+}
+.rg-hero { animation-delay: .08s; }
+.rg-safety { animation-delay: .16s; }
+.rg-context { animation-delay: .22s; }
+.rg-stat { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+.rg-stat:hover { transform: translateY(-6px) rotate(-.3deg); box-shadow: 7px 8px 0 rgba(23,25,27,.2); border-color: #6e873f; }
+.rg-panel { transition: transform .24s ease, box-shadow .24s ease; }
+.rg-panel:hover { transform: translateY(-4px); box-shadow: 7px 8px 0 rgba(23,25,27,.19); }
+.rg-hero { transition: box-shadow .25s ease, border-color .25s ease; }
+.rg-hero:hover { box-shadow: 9px 10px 0 #17191b; border-color: #718b43; }
+.rg-chrome { animation: rg-chrome-float 6s ease-in-out infinite; transition: transform .22s ease; will-change: transform; }
+.rg-chrome:before { animation: rg-ring-spin 12s linear infinite; }
+.rg-live { animation: rg-pulse 3s ease-in-out infinite; }
+.rg-bar-fill { position: relative; overflow: hidden; }
+.rg-bar-fill:after { content: ""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); animation:rg-scan 3.3s ease-in-out infinite; }
+.rg-relationship { transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
+.rg-relationship:hover { transform: translateX(5px); background:#fff; box-shadow:4px 4px 0 rgba(23,25,27,.14); }
+.rg-node { transition: transform .18s ease, background .18s ease; }
+.rg-node:hover { transform: scale(1.025); background:#edfacf; }
+[data-testid="stTabs"] button[role="tab"] { transition: transform .18s ease, background .18s ease; }
+[data-testid="stTabs"] button[role="tab"]:hover { transform: translateY(-3px); }
+[data-testid="stButton"] button, [data-testid="stFormSubmitButton"] button, [data-testid="stDownloadButton"] button {
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease !important;
+}
+[data-testid="stButton"] button:hover, [data-testid="stFormSubmitButton"] button:hover, [data-testid="stDownloadButton"] button:hover {
+  transform: translate(-2px,-2px) !important; box-shadow: 6px 6px 0 rgba(23,25,27,.28) !important;
+}
+.rg-auth-card { animation: rg-reveal .7s cubic-bezier(.2,.75,.25,1) both; }
+.rg-auth-orbit { animation: rg-chrome-float 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  *, *:before, *:after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  body:after, #rg-cursor-ring { display:none !important; }
+}
+</style>
+<script>
+(() => {
+  const bootKey = "rogueguard.boot.v1";
+  if (!window.sessionStorage.getItem(bootKey)) {
+    window.sessionStorage.setItem(bootKey, "1");
+    const boot = document.createElement("div");
+    boot.id = "rg-boot-screen";
+    boot.innerHTML = '<div class="rg-boot-inner"><div class="rg-boot-mark">RG /</div><div class="rg-boot-label">ROGUEGUARD // INITIALISING LOCAL WORKSPACE</div><div class="rg-boot-track"><div class="rg-boot-progress"></div></div></div>';
+    document.body.appendChild(boot);
+    window.setTimeout(() => boot.classList.add("rg-boot-out"), 1450);
+    window.setTimeout(() => boot.remove(), 2100);
+  }
+  if (window.__rogueGuardPointerBound) return;
+  window.__rogueGuardPointerBound = true;
+  const finePointer = window.matchMedia && window.matchMedia("(pointer:fine)").matches;
+  const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!finePointer || reducedMotion) return;
+  const ring = document.createElement("div");
+  ring.id = "rg-cursor-ring";
+  document.body.appendChild(ring);
+  let hideTimer;
+  window.addEventListener("pointermove", (event) => {
+    document.documentElement.style.setProperty("--rg-mouse-x", event.clientX + "px");
+    document.documentElement.style.setProperty("--rg-mouse-y", event.clientY + "px");
+    ring.style.left = event.clientX + "px";
+    ring.style.top = event.clientY + "px";
+    ring.classList.add("rg-cursor-visible");
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => ring.classList.remove("rg-cursor-visible"), 1800);
+    const chrome = event.target.closest && event.target.closest(".rg-chrome");
+    if (chrome) {
+      const rect = chrome.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - .5;
+      const y = (event.clientY - rect.top) / rect.height - .5;
+      chrome.style.transform = "perspective(700px) rotateX(" + (-y * 18) + "deg) rotateY(" + (x * 22) + "deg) scale(1.06)";
+    } else {
+      document.querySelectorAll(".rg-chrome").forEach((item) => { item.style.transform = ""; });
+    }
+    if (event.target.closest && event.target.closest("button, a, [role='tab'], .rg-node")) ring.classList.add("rg-cursor-hover");
+    else ring.classList.remove("rg-cursor-hover");
+  }, {passive:true});
+})();
+</script>
