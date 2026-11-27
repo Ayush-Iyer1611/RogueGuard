@@ -316,6 +316,143 @@ def inject_theme():
             .rg-relationship { grid-template-columns:1fr; }
             .rg-edge { text-align:left; }
         }
+
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+        html, body, [data-testid="stAppViewContainer"], input, textarea, button {
+            font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
+        }
+        h1, h2, h3, h4,
+        .rg-brand-name, .rg-hero h1, .rg-section-title,
+        .rg-panel-title, .rg-stat-value, .rg-detail-title {
+            font-family: "Barlow Condensed", Impact, "Arial Narrow", sans-serif !important;
+            font-weight: 900 !important;
+            text-transform: uppercase;
+        }
+        .rg-brand-name {
+            font-size: 1.55rem !important;
+            letter-spacing: -.035em !important;
+            line-height: .88 !important;
+        }
+        .rg-brand-sub {
+            font-family: "IBM Plex Mono", monospace !important;
+            font-size: .58rem !important;
+            letter-spacing: .19em !important;
+        }
+        .rg-hero {
+            min-height: 320px;
+            padding: 2.3rem 2.25rem 2.1rem;
+            background:
+                linear-gradient(112deg, rgba(255,255,255,.98) 0%, rgba(248,247,242,.96) 56%, rgba(225,228,222,.88) 100%);
+        }
+        .rg-hero:after {
+            content: "RG / 09";
+            position: absolute;
+            right: 15%;
+            bottom: -2.1rem;
+            color: rgba(23,25,27,.045);
+            font: 900 clamp(7rem,15vw,13rem)/.8 "Barlow Condensed", Impact, sans-serif;
+            letter-spacing: -.075em;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .rg-hero > div:first-child { position:relative; z-index:1; }
+        .rg-hero h1 {
+            margin: .65rem 0 .55rem !important;
+            font-size: clamp(4.1rem, 7.8vw, 7.7rem) !important;
+            line-height: .79 !important;
+            letter-spacing: -.055em !important;
+            font-weight: 900 !important;
+            text-transform: uppercase;
+            max-width: 850px;
+        }
+        .rg-hero h1 em {
+            color: #718b43 !important;
+            font-style: italic;
+            letter-spacing: -.065em;
+            white-space: nowrap;
+        }
+        .rg-hero p {
+            max-width: 590px;
+            font-size: .92rem;
+            line-height: 1.62;
+            letter-spacing: -.012em;
+        }
+        .rg-kicker {
+            font-family: "IBM Plex Mono", monospace !important;
+            font-size: .67rem !important;
+            letter-spacing: .2em !important;
+            font-weight: 700 !important;
+        }
+        .rg-section-title {
+            font-size: 2.05rem !important;
+            line-height: .95;
+            letter-spacing: -.035em !important;
+        }
+        .rg-section-copy {
+            font-size: .82rem !important;
+            max-width: 680px;
+        }
+        .rg-panel-title {
+            font-size: 1.35rem !important;
+            line-height: .95;
+            letter-spacing: -.015em !important;
+        }
+        .rg-stat-value {
+            font-size: 2.65rem !important;
+            line-height: .9;
+            letter-spacing: -.025em !important;
+        }
+        .rg-stat-label, .rg-stat-note, .rg-panel-tag,
+        .rg-table th, .rg-pill, .rg-bar-label, .rg-bar-count,
+        .rg-top-label, .rg-context, .rg-footer,
+        .rg-live, .rg-safety b {
+            font-family: "IBM Plex Mono", monospace !important;
+        }
+        .rg-stat-label {
+            font-size: .63rem !important;
+            letter-spacing: .15em !important;
+        }
+        .rg-table th {
+            font-size: .61rem !important;
+            letter-spacing: .12em !important;
+        }
+        [data-testid="stTabs"] button[role="tab"] {
+            font-family: "Barlow Condensed", Impact, sans-serif !important;
+            font-size: 1.02rem !important;
+            font-weight: 800 !important;
+            letter-spacing: .035em !important;
+        }
+        [data-testid="stMetricValue"] {
+            font-family: "Barlow Condensed", Impact, sans-serif !important;
+            font-size: 2.55rem !important;
+            font-weight: 900 !important;
+        }
+        [data-testid="stMetricLabel"] p {
+            font-family: "IBM Plex Mono", monospace !important;
+            letter-spacing: .14em !important;
+        }
+        .rg-detail-title {
+            font-size: 1.85rem !important;
+            line-height: .95;
+            letter-spacing: -.03em !important;
+        }
+        .rg-node {
+            font-family: "Space Grotesk", sans-serif !important;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+        .rg-feature strong {
+            font-family: "Barlow Condensed", Impact, sans-serif !important;
+            font-size: 1.12rem !important;
+            text-transform: uppercase;
+            letter-spacing: .015em;
+        }
+        @media (max-width: 900px) {
+            .rg-hero { min-height: 0; padding: 1.7rem 1.3rem; }
+            .rg-hero h1 { font-size: clamp(3.4rem, 12vw, 5.5rem) !important; }
+            .rg-hero h1 em { white-space: normal; }
+            .rg-hero:after { right: 3%; font-size: 7rem; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
