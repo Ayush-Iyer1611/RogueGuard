@@ -56,6 +56,7 @@ RogueGuard explores this workflow in a controlled, reproducible synthetic enviro
 | Evidence export | JSON case bundle, CSV findings, SHA-256 manifest, and optional identifier/token-like redaction |
 | Relationship view | Displays relationship edges supplied by the synthetic scenario |
 | Automated tests | Unit, database, v0.9 workflow regression, and Streamlit startup smoke tests in GitHub Actions |
+| Local operator authentication | First-run administrator setup, salted PBKDF2-HMAC-SHA256 password hashes, parameterised SQLite credential lookup, temporary failed-login lockout, and sign-out |
 
 ### Current synthetic scenarios
 
@@ -130,6 +131,7 @@ These limitations are deliberately visible so the project does not overclaim wha
 | SQLite is local and mutable | Local audit is not immutable evidence storage | Event history and export manifest help with review; independent retention is future work |
 | Export hash limitations | A hash manifest alone does not protect the manifest or prove trusted time | Export explicitly warns that hashes are not immutable storage |
 | Limited UI automation coverage | CI verifies the Streamlit app starts, but does not automate every operator interaction | Manual T01–T08 and end-to-end interaction review remain part of the release gate |
+| Local demo authentication | The first local user is an administrator; there is no SSO, MFA, self-service registration, or authenticated multi-user approval | Local workstation/demo access gate only; not intended for exposure as a public production service |
 
 ## 05 / Final prototype v0.9 — scope freeze
 
@@ -171,6 +173,7 @@ See [Final Prototype and Submission Plan](docs/final_submission_plan.md) for the
 ## 07 / Architecture and project files
 
 - [Architecture and threat model](docs/architecture.md)
+- [Local authentication and SQL injection controls](docs/authentication.md)
 - [Project synopsis](docs/project_synopsis.md)
 - [Test matrix](docs/test_matrix.md)
 - [Findings register](docs/findings_register.md)
@@ -180,7 +183,10 @@ See [Final Prototype and Submission Plan](docs/final_submission_plan.md) for the
 ~~~text
 RogueGuard/
 ├── app.py
+├── auth.py
 ├── core.py
+├── assets/
+│   └── rogueguard-effects.html
 ├── database.py
 ├── prototype.py
 ├── fixtures/
@@ -189,6 +195,7 @@ RogueGuard/
 │       └── unknown-role-and-delegation.json
 ├── docs/
 ├── tests/
+│   ├── test_auth.py
 │   ├── test_core.py
 │   ├── test_database.py
 │   └── test_prototype.py
@@ -233,6 +240,8 @@ streamlit run app.py
 ~~~
 
 Open the local address printed by Streamlit, usually http://localhost:8501.
+
+On the first launch, create a local administrator account using a password of at least 12 characters. Future launches show the sign-in page. The local database is not committed to Git.
 
 ### 4. Run automated tests
 
