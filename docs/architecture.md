@@ -1,72 +1,131 @@
-# Architecture and Threat Model
+# Architecture and Threat Model — RogueGuard v0.9
 
-## 1. System purpose
+## 1. System purpose and release boundary
 
-RogueGuard is a local defensive prototype for reviewing synthetic service-account permission assignments and demonstrating a containment workflow. It is not a cloud identity discovery product and does not connect to a cloud provider.
+RogueGuard v0.9 is a local, synthetic identity-security workbench. It demonstrates how an analyst can load identity and resource fixtures, review permission findings, create a case, preview a response plan, obtain a separate reviewer decision, simulate the action, verify the result, and export evidence.
 
-## 2. Logical architecture
+It does **not** connect to a cloud provider or change real IAM policies, credentials, storage, secrets, or workload identities. Provider adapters and cloud operations remain separate future work requiring explicit sandbox approval and operation-level verification.
+
+## 2. Current logical architecture
 
 ```mermaid
-flowchart TB
-  OP[Operator] --> UI[Streamlit UI: app.py]
-  UI --> CORE[Security logic: core.py]
-  UI --> DBL[Persistence: database.py]
-  CORE --> UI
-  DBL --> SQLITE[(Local SQLite database)]
-  SQLITE --> DBL
-  TESTS[unittest suite] -. validates .-> CORE
-  TESTS -. validates .-> DBL
+flowchart TD
+    A[Versioned JSON scenario fixtures] --> B[Fixture validation and loader]
+    B --> C[Identity / resource / binding registry]
+    C --> D[Rule-based analysis engine]
+    D --> E[Structured findings and evidence]
+    E --> F[Streamlit analyst workbench]
+    F --> G[Case workspace]
+    G --> H[Dry-run response planner]
+    H --> I[Two-person approval gate]
+    I --> J[Local response simulator]
+    J --> K[Post-action verification]
+    K --> L[Case evidence exporter]
+    L --> M[JSON / CSV / SHA-256 manifest]
+    F <--> N[(SQLite prototype store)]
+    B --> N
+    D --> N
+    G --> N
+    H --> N
+    J --> N
+    K --> N
+    O[unittest suite] -. verifies .-> B
+    O -. verifies .-> D
+    O -. verifies .-> H
+    O -. verifies .-> J
+    O -. verifies .-> K
+    O -. verifies .-> L
 ```
 
-## 3. Components
+## 3. Code components
 
-- **Presentation — `app.py`:** renders inventory, containment controls, metrics, and audit trail.
-- **Security engine — `core.py`:** compares granted and required roles, calculates an illustrative risk score, computes a retained role set, and simulates access decisions.
-- **Persistence — `database.py`:** seeds synthetic identities, reads and updates records, records audit events, and performs containment/reactivation/reset operations.
-- **Database — SQLite:** stores local synthetic account and audit records.
-- **Verification — `tests/`:** checks core logic and database workflows using Python's standard-library test framework.
+| Component | Responsibility |
+|---|---|
+| `app.py` | Streamlit overview, identity explorer, finding inbox, response lab, case and evidence views |
+| `prototype.py` | Fixture validation/import, SQLite schema, detection rules, finding/case lifecycle, response plans, approvals, simulated actions, verification, and evidence export |
+| `core.py` | Original v0.1 permission-set comparison, illustrative risk score, remediation calculation, and simulated access decision |
+| `database.py` | Original v0.1 account store, containment, reactivation, audit, and demo reset |
+| `fixtures/scenarios/` | Versioned synthetic identity, resource, baseline, binding, and relationship data |
+| `tests/` | Unit, database, and v0.9 analyst workflow tests |
+| `evidence/exports/` | Local generated case exports; ignored by Git |
 
-## 4. Data flow
+## 4. Data model
 
-1. Synthetic seed records are inserted into SQLite when the account table is empty.
-2. The dashboard reads account records and displays their purpose, owner, resource scope, roles, and status.
-3. The core engine compares granted roles with declared required roles.
-4. The operator reviews the proposed action and explicitly confirms containment.
-5. The database layer validates the requested retained roles.
-6. A transaction updates the local account state and writes a before/after audit record.
-7. The dashboard reloads data from SQLite.
+| Entity | Purpose |
+|---|---|
+| Scenario | Versioned synthetic investigation context |
+| Identity | Principal, type, owner, purpose, environment, lifecycle, observation and review dates |
+| Resource | Project, bucket, or service with environment and sensitivity |
+| Baseline | Required roles, rationale, owner, approval state and version |
+| Role binding | Principal + role + resource + source + optional condition/inheritance |
+| Relationship | Synthetic relation such as token creator, can impersonate, or used by |
+| Finding | Rule ID, principal, resource, role, severity, confidence, evidence, recommendation and state |
+| Case | Groups findings, plans, approvals and evidence |
+| Action plan | Proposed action and before/after snapshot |
+| Approval | Independent reviewer decision and rationale |
+| Event | Case timeline for plan, approval, execution, verification and state changes |
+| Finding history | Actor, old/new finding state, reason and timestamp |
 
-## 5. Trust boundaries and assumptions
+## 5. Analysis rules currently implemented
 
-- The operator is trusted to use the local training application responsibly.
-- Seed data and the local SQLite database are synthetic and controlled by the project.
-- The declared required-role list is treated as the expected baseline; the prototype does not independently validate it.
-- The application process and local database file are within the same local trust boundary.
-- The audit table is not tamper-proof and is not stored in an independent security boundary.
+- `EXCESS_ROLE`: observed role is not present in the declared required-role baseline.
+- `MISSING_REQUIRED_ROLE`: baseline includes a role with no matching binding.
+- `UNKNOWN_ROLE`: role is not part of the prototype role catalogue.
+- `BROAD_RESOURCE_SCOPE`: selected non-viewer role is bound at project or folder scope.
+- `MISSING_OWNER`: identity has no recorded owner.
+- `STALE_ACCESS_REVIEW`: review date is in the past.
+- `INVALID_REVIEW_DATE`: review metadata cannot be parsed as an ISO date.
 
-## 6. Threat scenarios considered
+Rules operate on fixture data. They do not establish live identity behaviour, actual permission usage, or intent. Finding severity and confidence are distinct. Confidence is currently based on whether the synthetic baseline is marked approved; it is not a statistical confidence interval.
 
-| Scenario | Current prototype response | Limitation |
+## 6. Response workflow and safety controls
+
+1. The analyst selects findings and opens a case.
+2. A dry-run plan stores the original and proposed identity/binding snapshots.
+3. Permission reduction and quarantine are separate actions.
+4. A reviewer different from the plan creator must approve or reject the plan.
+5. Execution is allowed only for an approved plan.
+6. The simulator checks that the current state still matches the reviewed precondition.
+7. The local database is updated transactionally.
+8. Verification compares the resulting state with the reviewed expected state.
+9. Finding and case events are retained in the local prototype store.
+10. A case export contains JSON, CSV, and a SHA-256 manifest.
+
+Reactivation is gated: the identity must be quarantined, and the remaining role bindings must fit the declared required-role baseline. A prior excess grant is not silently restored.
+
+## 7. Trust boundaries and assumptions
+
+- Fixture files and the local SQLite database are synthetic inputs.
+- Required-role baselines are supplied by the scenario and are not independently validated against a real workload.
+- Relationship edges are scenario assertions, not discovered trust paths.
+- The local operator identity fields are labels entered in the UI, not authenticated enterprise identities.
+- Two-person approval is a workflow simulation, not an independently authenticated approval system.
+- SQLite and the hash manifest are not immutable or independently protected evidence storage.
+- A local simulated result is not evidence of a cloud-side change.
+
+## 8. Threat scenarios explored
+
+| Scenario | v0.9 behaviour | Limitation |
 |---|---|---|
-| An account has excess roles | Flags roles outside declared requirements | Does not establish who granted them or why |
-| An account is quarantined | Simulated access decisions deny it | Does not revoke cloud credentials or tokens |
-| A containment request includes an undeclared role | Database validation rejects it | Validation is against synthetic local records |
-| A database operation fails | Transaction is rolled back | Does not provide distributed transaction guarantees |
-| An unknown identity is created in a cloud project | Not detected | No live identity discovery or cloud event ingestion |
+| Excess privilege | Flags role bindings outside the declared baseline | Baseline itself may be wrong or stale |
+| Unknown role | Flags role outside the local catalogue | Catalogue is intentionally small and not provider-complete |
+| Broad scope | Identifies selected roles attached to project/folder resource fixtures | No provider policy inheritance evaluation |
+| Missing owner / stale review | Produces metadata findings | No organisation directory or lifecycle source |
+| Delegation relationship | Displays fixture relationship graph | No real graph discovery or transitive cloud privilege calculation |
+| Unsafe response request | Requires independent reviewer and checks stale plan state | Reviewer labels are not authenticated |
+| Quarantine | Simulates lifecycle state transition | Does not disable a real service account or revoke credentials |
+| Evidence tampering | Exports hashes for generated files | No immutable storage or trusted timestamping |
 
-## 7. Security controls demonstrated
+## 9. Out of scope for v0.9
 
-- Least-privilege comparison against a declared baseline.
-- Human confirmation before the UI invokes containment.
-- Validation that retained roles were originally granted and are declared required.
-- Transactional update of local account state and audit evidence.
-- Reactivation without restoring removed grants.
-- Automated tests for expected and rejected operations.
+Live cloud IAM discovery, policy write operations, credential/token revocation, production alerting, provider audit-log ingestion, calibrated risk prediction, immutable evidence storage, enterprise SSO, multi-tenant isolation, and production authorisation enforcement.
 
-## 8. Out of scope
+## 10. Verification
 
-The current version does not implement live cloud IAM integration, identity provenance, cloud audit-log ingestion, anomaly detection, credential or token revocation, tamper-resistant logging, or production-grade authorisation enforcement.
+Run:
 
-## 9. Future validation
+```bash
+python -m unittest discover -s tests -v
+```
 
-Any cloud integration must be developed and tested only in the explicitly assigned sandbox, after mentor approval. Each provider operation must be verified individually; an enabled service or available endpoint is not proof that a specific operation is supported.
+The automated suite checks the implemented local paths. The academic T01–T08 manual review matrix must still be executed with captured evidence before the v1.0 submission.
