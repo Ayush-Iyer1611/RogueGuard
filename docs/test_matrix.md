@@ -15,7 +15,7 @@
 
 ## B. Automated v0.9 regression coverage
 
-The following behaviours are covered by `tests/test_prototype.py`. The CI run must pass on the commit intended for review; the table does not replace manual T01–T08 evidence.
+The following behaviours are covered by the Python test suite. CI also compiles the app/modules and runs a Streamlit startup smoke test via `tests/test_app_smoke.py`. The CI run must pass on the commit intended for review; it does not replace manual T01–T08 interaction evidence.
 
 | ID | Automated behaviour | Test coverage |
 |---|---|---|
@@ -34,6 +34,7 @@ The following behaviours are covered by `tests/test_prototype.py`. The CI run mu
 | V09-13 | Preserve case export as JSON, CSV and SHA-256 manifest | Yes |
 | V09-14 | Redact synthetic principal identifiers when requested | Yes |
 | V09-15 | Provide scenario-level summary counts | Yes |
+| V09-16 | Streamlit app starts under AppTest without an uncaught exception | Yes |
 
 ## C. Manual error and safety scenarios
 
@@ -46,4 +47,4 @@ The following behaviours are covered by `tests/test_prototype.py`. The CI run mu
 | M05 | Reload a scenario that already has case history | Reload rejected so case history is not silently discarded |
 | M06 | Export case evidence with redaction | Principal identifiers and token-like values are masked; manifest clearly warns hashes are not immutable storage |
 
-**Important:** Automated regression coverage is not proof of a secure production system. Mark T01–T08 PASS only after performing the manual checks and capturing evidence. Cloud-side tests require explicit sandbox access and mentor approval.
+**Important:** Automated regression coverage and the Streamlit startup smoke test are not proof of a secure production system or full UI correctness. Mark T01–T08 PASS only after performing the manual checks and capturing evidence. Cloud-side tests require explicit sandbox access and mentor approval.
