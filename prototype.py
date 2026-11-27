@@ -474,10 +474,16 @@ def _snapshot(con: sqlite3.Connection, scenario_id: str, principal: str) -> dict
                            (scenario_id, principal)).fetchone()
     if identity is None:
         raise ValueError("Identity does not exist in this scenario.")
+    baseline_row = con.execute(
+        "SELECT * FROM rg_baselines WHERE scenario_id=? AND principal=?",
+        (scenario_id, principal)).fetchone()
+    baseline = dict(baseline_row) if baseline_row else None
+    if baseline is not None:
+        baseline["required_roles"] = json.loads(baseline.pop("required_roles_json"))
     bindings = [dict(r) for r in con.execute(
         "SELECT binding_id,role,resource_id,source,condition_text AS condition,inherited FROM rg_bindings WHERE scenario_id=? AND principal=? ORDER BY role,resource_id",
         (scenario_id, principal))]
-    return {"identity": dict(identity), "bindings": bindings}
+    return {"identity": dict(identity), "baseline": baseline, "bindings": bindings}
 
 def create_action_plan(case_id: str, principal: str, action_type: str,
                        reason: str, actor: str, finding_ids: list[str] | None = None) -> str:
@@ -686,6 +692,9 @@ def _redact(value: Any) -> Any:
                        r"\1\2[REDACTED]", value)
         value = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
                        "[REDACTED-PRINCIPAL]", value)
+        value = re.sub(r"(?i)(?:project|bucket|service):[A-Za-z0-9._/-]+",
+                       "[REDACTED-RESOURCE]", value)
+        value = re.sub(r"gs://[A-Za-z0-9._/-]+", "gs://[REDACTED-RESOURCE]", value)
         return value
     return value
 
