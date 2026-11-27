@@ -1,160 +1,197 @@
 # Final Prototype and Submission Plan
 
 **Project:** RogueGuard  
-**Current code baseline:** v0.1  
-**Last prototype review:** v0.9  
+**Historical foundation:** v0.1  
+**Current workbench:** v0.9 final-prototype implementation  
+**Last prototype review target:** v0.9  
 **Final submission release:** v1.0
 
-This document defines the remaining delivery path. It is intentionally finite: one final prototype review, followed by a feature freeze and final submission release. It does not commit the project to becoming a production cloud-security platform.
+This is the finite delivery plan for the last review and final submission. The current v0.9 workbench has implemented the central analyst workflow in a local synthetic environment. The remaining work is validation, closing acceptance gaps, and packaging evidence—not unlimited feature expansion.
 
 ## 1. Release strategy
 
 | Stage | Meaning | Rule |
 |---|---|---|
-| v0.1 — Foundation | Current checked-in implementation | Preserve as the verified starting point |
-| v0.9 — Final prototype | Last reviewable prototype | Implement only the agreed acceptance scope; demonstrate end to end |
-| v1.0 — Final product | Submission-ready release | No new feature cycle; fix defects, complete tests, package evidence, and document limitations |
+| v0.1 — Foundation | Original synthetic permission-audit and containment simulator | Historical starting point; retain its core tests and behaviour |
+| v0.9 — Final prototype | Current review candidate | Complete the acceptance scope below, demonstrate it end to end, and collect reviewer feedback |
+| v1.0 — Final product | Final academic submission | Freeze features; correct defects; complete tests, documentation, evidence, report, and demo |
 
-After the v0.9 review, new ideas go into a post-submission backlog unless they are required to fix a defect or satisfy a final acceptance criterion.
+After the v0.9 review, new ideas move to a post-submission backlog unless they are required to fix a defect or meet an agreed acceptance criterion.
 
-## 2. v0.9 — Final prototype scope
+## 2. Current v0.9 implementation status
+
+The following features are present in the current branch. They still require local end-to-end review and evidence capture.
+
+| Capability | Current status | Evidence / code |
+|---|---|---|
+| Versioned synthetic fixtures | Implemented | `fixtures/scenarios/*.json`, fixture validation in `prototype.py` |
+| Identity/resource/binding model | Implemented | Identity, resource, baseline, relationship, and role-binding tables |
+| Baseline provenance fields | Implemented | Version, owner, rationale, approval state and required-role list in fixtures |
+| Rule-based findings | Implemented | Excess, missing, unknown role, broad scope, missing owner, stale review, invalid review date |
+| Explainable finding lifecycle | Implemented | Stable IDs, rule, resource, evidence, severity, confidence, recommendation and state |
+| Finding search and filters | Implemented | State, severity, owner, identity and rule search in Streamlit |
+| Identity relationship view | Implemented | Synthetic fixture relationship graph; no live discovery or graph traversal |
+| Dry-run response plan | Implemented | Before/after snapshot with binding-level policy comparison |
+| Independent reviewer decision | Implemented | Reviewer label must differ from creator; labels are not enterprise-authenticated |
+| Separate response actions | Implemented | Remove excess permissions, quarantine, and gated reactivation |
+| Stale-plan protection | Implemented | Execute is rejected when current snapshot differs from reviewed plan |
+| Post-action verification | Implemented | VERIFIED/FAILED comparison against expected snapshot |
+| Case and decision history | Implemented | Case timeline, approval events, finding transition history |
+| Evidence export | Implemented | JSON, CSV, SHA-256 manifest, optional principal/resource/token-like redaction |
+| Reset/evidence protection | Partially implemented | UI has no destructive reset; scenario reload with existing case history is rejected |
+| Automated tests and syntax check | Implemented in CI | `tests/test_core.py`, `tests/test_database.py`, `tests/test_prototype.py`; CI compiles modules and runs unittest |
+
+### Remaining v0.9 gaps
+
+- Run the Streamlit interface locally and walk through the entire operator journey.
+- Capture manual T01–T08 evidence; CI tests do not replace screenshots or observed UI behaviour.
+- Verify case exports are readable and properly redacted for every scenario.
+- Review invalid inputs and unexpected errors from the UI, not only the Python functions.
+- Confirm the final test matrix and findings register match the final checked-in code.
+- Add a clean-clone walkthrough and record Python/Streamlit versions for the review environment.
+
+The following remain deliberately outside v0.9 unless the review requires them: live cloud discovery/writes, credential revocation, authenticated enterprise approvers, immutable log storage, advanced anomaly detection, full transitive attack-path analysis, real-time monitoring, and multi-tenant production controls.
+
+## 3. v0.9 — final prototype acceptance scope
 
 The final prototype should provide one coherent local analyst workflow using synthetic data.
 
-### 2.1 Required workflow
+### 3.1 Required workflow
 
 1. Load a versioned synthetic scenario.
-2. Inspect an identity, its owner, purpose, environment, resources, and permission bindings.
-3. Review structured findings and understand their evidence, severity, and confidence.
-4. Compare the observed policy state with the declared baseline.
-5. Generate a dry-run response plan and inspect the exact before/after difference.
-6. Choose permission reduction and identity quarantine as distinct actions.
-7. Record the operator's reason and explicit confirmation.
-8. Apply the response to the local simulator only.
-9. Verify the resulting state against the proposed plan.
-10. Export a case bundle containing the relevant snapshots, findings, actions, approvals, audit events, and integrity manifest.
+2. Inspect an identity, owner, purpose, environment, resources, bindings, and declared baseline.
+3. Run detection rules and review structured findings.
+4. Inspect evidence, severity, confidence, and recommended next action.
+5. Create a case from selected findings.
+6. Generate a dry-run response plan and inspect the exact before/after bindings and impact summary.
+7. Select permission reduction, quarantine, or eligible reactivation as distinct actions.
+8. Record the operator's reason and obtain independent reviewer approval.
+9. Execute the action against the local synthetic simulator only.
+10. Verify the resulting state and export a case evidence bundle.
 
-### 2.2 Required feature set
+### 3.2 Acceptance criteria
 
 | ID | Feature | Acceptance condition |
 |---|---|---|
-| P09-01 | Synthetic fixture import | A documented fixture can be loaded and validated; malformed fields are rejected safely |
-| P09-02 | Identity/resource model | Each permission binding identifies a principal, role, resource, and source |
-| P09-03 | Baseline provenance | Expected access records include purpose, owner, version, rationale, and review state |
-| P09-04 | Finding engine | At minimum, detects excess grants, missing grants, unknown roles, and missing ownership where fixture data supports the rule |
-| P09-05 | Explainable findings | Each finding has a stable ID, rule ID, evidence, affected identity/resource, severity, confidence, and recommended next step |
-| P09-06 | Finding review | Findings can be searched/filtered and moved through a controlled lifecycle without deleting the original evidence |
-| P09-07 | Policy diff | The user can inspect exactly what changed between baseline/current state and proposed state |
-| P09-08 | Dry-run response | A plan can be generated without changing the active synthetic dataset |
-| P09-09 | Separate response controls | Permission reduction and identity quarantine are independent, explicit actions |
-| P09-10 | Action reason and confirmation | A response requires an operator reason and confirmation |
-| P09-11 | Post-action verification | The system reports VERIFIED, FAILED, or NOT VERIFIED against the intended result |
-| P09-12 | Reactivation gate | Reactivation requires a review decision; removed excess roles are not silently restored |
-| P09-13 | Case and audit context | Findings, action plans, approvals, and events can be associated with a case ID |
-| P09-14 | Evidence export | JSON and CSV case exports are available, with a SHA-256 manifest and redaction |
-| P09-15 | Reset safety | Demo reset cannot silently destroy the only copy of relevant evidence; export/backup or explicit acknowledgement is required |
-| P09-16 | Automated verification | New rules, transitions, rollback, malformed fixtures, exports, and reset safety have tests |
-| P09-17 | Operator usability | A reviewer can complete the workflow without editing source code or manually changing SQLite records |
+| P09-01 | Synthetic fixture import | Documented fixtures load; malformed fields and unknown references are rejected safely |
+| P09-02 | Identity/resource model | Each binding identifies principal, role, resource, source, and optional condition/inheritance metadata |
+| P09-03 | Baseline context | Expected access contains purpose, owner, version, rationale, approval state, and required roles |
+| P09-04 | Finding engine | Detects excess/missing grants, unknown roles, broad scope, missing owner, and stale/invalid review metadata |
+| P09-05 | Explainable findings | Stable finding ID, rule ID, principal/resource, evidence, severity, confidence, and recommendation |
+| P09-06 | Finding review | Search/filter by state, severity, owner and identity/rule; controlled lifecycle; state changes are audited |
+| P09-07 | Policy diff | Reviewer can inspect exact before/after identity and role-binding snapshots before execution |
+| P09-08 | Dry-run response | Plan creation does not mutate the active identity/bindings |
+| P09-09 | Separate response controls | Permission reduction, quarantine, and reactivation are independent actions |
+| P09-10 | Reason and confirmation | Plan requires operator reason; approval and execution require explicit actions |
+| P09-11 | Independent approval | Reviewer must differ from plan creator; rejected or pending plans cannot execute |
+| P09-12 | Stale-plan protection | Execution is rejected if current state differs from the reviewed precondition |
+| P09-13 | Reactivation gate | Only quarantined identities with no excess bindings can be reactivated; removed grants are not restored |
+| P09-14 | Post-action verification | Expected state is compared with actual local state; result is VERIFIED or FAILED |
+| P09-15 | Case and audit context | Findings, plans, approvals, and response events are linked to a case ID |
+| P09-16 | Evidence export | JSON and CSV exports plus SHA-256 manifest; redaction option is available |
+| P09-17 | Evidence/reset safety | No UI action silently clears case history; scenario reload is blocked where case history exists |
+| P09-18 | Automated verification | Unit tests cover rules, transitions, approvals, stale plans, rollback/rejection, exports and fixture validation |
+| P09-19 | Operator usability | Reviewer can perform the core workflow from Streamlit without editing Python or SQLite manually |
 
-The identity relationship graph, advanced anomaly detection, real-time monitoring, and live cloud response are optional extensions. Do not sacrifice stability or evidence quality to add them.
+## 4. v0.9 review demonstration
 
-## 3. v0.9 review demonstration
+Use a deterministic synthetic scenario and follow this sequence:
 
-The review should use deterministic synthetic scenarios and follow this sequence:
+1. **State the boundary:** this is a local synthetic identity-security workbench.
+2. **Load a scenario:** show the identity inventory, resource scope, and baseline provenance.
+3. **Investigate a finding:** show the excessive grant, rule ID, evidence, severity, confidence, and recommendation.
+4. **Review relationships:** explain that any graph edges come from synthetic fixture assertions.
+5. **Open a case:** associate the relevant finding(s) with an investigation.
+6. **Plan a response:** show before/after bindings and explain the expected impact.
+7. **Approve:** demonstrate that the plan creator cannot approve their own plan.
+8. **Simulate:** execute only after approval; show that no cloud resource is touched.
+9. **Verify:** demonstrate a successful verification and a stale-plan rejection.
+10. **Preserve evidence:** export JSON/CSV and inspect the manifest and redaction.
+11. **State limitations:** identify unsupported and unverified cloud operations.
 
-1. **Show the system boundary:** explain that the current run is a local synthetic security workbench.
-2. **Load a scenario:** show the identity inventory and the source of its synthetic baseline.
-3. **Investigate a finding:** identify the excessive permission and show the evidence supporting the finding.
-4. **Explain risk:** show the contributing factors, severity, and confidence; do not present a heuristic score as a probability.
-5. **Plan the response:** show the policy diff and affected synthetic resources before executing anything.
-6. **Approve and simulate:** enter an operator reason and choose the intended action.
-7. **Verify:** demonstrate that the post-action state matches the plan, or show a clear failure/unverified state.
-8. **Preserve evidence:** open the case timeline and export the evidence bundle.
-9. **State limitations:** identify which operations are simulated, unsupported, or not verified in the assigned sandbox.
+The review should show both the successful path and at least one safely rejected action.
 
-The review should prove not only that the happy path works, but also that invalid requests fail safely and preserve the original state.
-
-## 4. v1.0 — Final product acceptance
+## 5. v1.0 — final product acceptance
 
 v1.0 is the final academic submission build. It is not a claim of enterprise production readiness.
 
 ### Functional acceptance
 
-- The agreed v0.9 workflow works from a fresh clone and a clean local database.
-- All required features in the v0.9 scope are either implemented and tested or explicitly removed from the agreed scope with a recorded reason.
-- No critical or high-severity known defect remains open without an explicit disposition.
-- Invalid input, unsupported actions, and failed response simulations produce safe, explainable outcomes.
+- The agreed v0.9 workflow works from a fresh clone and clean local database.
+- Every review-critical feature is implemented and tested or explicitly removed from scope with a recorded reason.
+- No critical or high-severity known defect remains open without a documented disposition.
+- Invalid input, unsupported actions, stale plans, and failed simulations produce safe outcomes.
 - The app never presents a simulated cloud action as a verified cloud change.
 
 ### Testing acceptance
 
-- Run the full Python unit/database test suite.
-- Run UI smoke tests for scenario load, finding review, plan preview, simulated response, verification, and evidence export.
-- Execute applicable T01–T08 checks in `test_matrix.md`.
+- Compile the app and all Python modules.
+- Run the complete unit/database test suite.
+- Walk through the Streamlit UI for scenario load, identity review, finding filters, plan preview, approval, simulated response, verification, and export.
+- Execute applicable T01–T08 manual checks in `test_matrix.md`.
 - Capture evidence for each executed test.
-- Mark a test PASS only when the expected result was observed; use FAIL, BLOCKED, or NOT APPLICABLE where appropriate.
-- Record environment details and any deviations from expected results.
+- Mark tests PASS only when the expected result was observed; use FAIL, BLOCKED, or NOT APPLICABLE where appropriate.
+- Record environment details and deviations.
 
 ### Documentation and submission acceptance
 
-- Update the README to describe only implemented features as current.
-- Keep architecture and threat-model diagrams aligned with the shipped code.
-- Complete the findings register with evidence, impact, remediation, and retest outcome.
-- Include setup, test, and demo instructions.
-- Prepare a concise demo script and redacted screenshots.
-- Include limitations, scope boundaries, unverified operations, and release recommendation.
+- README describes only implemented features as current.
+- Architecture and threat-model diagrams match the shipped code.
+- Findings register includes evidence, impact, remediation, and retest outcome.
+- Setup, test, and demo instructions work from a fresh clone.
+- Prepare a short demo script, redacted screenshots, final report, limitations, and release recommendation.
 - Verify that secrets, credentials, personal data, local databases, and sensitive unredacted evidence are not committed.
 - Create a v1.0 release/tag only after acceptance checks are complete.
 
-## 5. Cloud sandbox decision rule
+## 6. Cloud sandbox decision rule
 
-Cloud integration must be treated as a separately verified capability.
+Cloud integration is a separately verified capability.
 
 - Use only the explicitly assigned and approved sandbox.
-- Confirm the project, endpoint, permissions, service support, and exact operation before testing.
+- Confirm project, endpoint, permissions, service support, and exact operation before testing.
 - Start with read-only operations.
-- Keep all cloud writes disabled unless separately approved.
-- Record the operation, time, environment, observed result, and evidence.
-- Label each operation as SIMULATED, READ, WRITE, VERIFIED, FAILED, BLOCKED, or NOT SUPPORTED.
-- If access or support is unavailable, keep the local simulation and document the limitation. Do not claim that cloud integration works.
+- Keep cloud writes disabled unless separately approved.
+- Record operation, time, environment, observed result, and evidence.
+- Label every operation SIMULATED, READ, WRITE, VERIFIED, FAILED, BLOCKED, or NOT SUPPORTED.
+- If access or support is unavailable, preserve the local simulation and document the limitation. Do not claim cloud integration works.
 
-A service being enabled or an API endpoint being reachable does not prove that a particular IAM, credentials, storage, secret, or logging operation is implemented and supported.
+An enabled service or reachable API endpoint does not prove that a specific IAM, credentials, storage, secret, or logging operation is supported.
 
-## 6. T01–T08 evidence tracker
+## 7. T01–T08 evidence tracker
 
-Use the existing [test matrix](test_matrix.md). This tracker does not pre-mark any result as passed.
+This tracker is intentionally unmarked until manual evidence is captured.
 
 | Test | Final evidence expected | Result |
 |---|---|---|
 | T01 — Inventory | Identity, role, owner, and resource-scope view | Pending execution |
 | T02 — Permission purpose | Baseline rationale and required/granted comparison | Pending execution |
 | T03 — Containment | Before/after policy state and resulting identity status | Pending execution |
-| T04 — Access verification | Required access retained in the simulator; unrelated access denied/removed as expected | Pending execution |
-| T05 — Evidence preservation | Case audit event and exported evidence bundle | Pending execution |
+| T04 — Access verification | Required access retained in simulator; unrelated access removed or denied as expected | Pending execution |
+| T05 — Evidence preservation | Case timeline and exported evidence bundle | Pending execution |
 | T06 — Controlled error | Safe failure with unchanged state and no sensitive data in output | Pending execution |
 | T07 — Sensitive-data review | Source, logs, screenshots, and exports reviewed/redacted | Pending execution |
 | T08 — Repeatability | Full test set rerun with recorded environment and outcomes | Pending execution |
 
-## 7. Feature freeze and change control
+## 8. Feature freeze and change control
 
 After the v0.9 review:
 
 - Freeze feature development.
-- Fix reproducible defects and security/safety issues.
-- Complete missing acceptance evidence.
+- Fix reproducible defects and safety issues.
+- Close acceptance gaps and collect missing evidence.
 - Improve documentation where reviewers found ambiguity.
 - Do not add optional features unless required to meet an agreed acceptance criterion.
-- Re-run the affected tests after every fix and the full suite before v1.0.
+- Re-run affected tests after every fix and the full suite before v1.0.
 
-## 8. Final release decision
+## 9. Final release decision
 
 The v1.0 release decision should be one of:
 
-- **READY FOR SUBMISSION:** required workflows, tests, documentation, and evidence are complete; all limitations are explicit.
-- **READY WITH DOCUMENTED LIMITATIONS:** core local demonstration is complete, but a cloud operation is blocked or unsupported and accurately documented.
-- **NOT READY:** critical workflow or evidence gaps remain.
+- **READY FOR SUBMISSION:** required workflows, tests, documentation, and evidence are complete; limitations are explicit.
+- **READY WITH DOCUMENTED LIMITATIONS:** the core local demonstration is complete, but an authorised cloud operation is blocked or unsupported and accurately documented.
+- **NOT READY:** a critical workflow or evidence gap remains.
 
-The release report should explain the decision using observed test results and retained evidence, not assumptions.
+The release report must justify the decision using observed tests and retained evidence, not assumptions.
 
 ---
 
