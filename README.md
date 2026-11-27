@@ -1,16 +1,16 @@
 # RogueGuard
 
-**Identity Exposure, Permission Intelligence & Response Planning — an evolving defensive security prototype.**
+**Identity Exposure, Permission Intelligence & Response Planning — final prototype candidate.**
 
-RogueGuard is a learning-focused security workbench for investigating non-human identities, understanding excessive access, planning least-privilege changes, and preserving evidence around response decisions.
+RogueGuard is a defensive security workbench for reviewing non-human identities, understanding excessive access, planning least-privilege changes, and preserving evidence around response decisions.
 
-The project began as a local service-account permission auditor and containment simulator. The next prototype iteration expands the concept into a more complete identity-security workflow: **discover → understand → prioritise → plan → approve → simulate → verify → preserve evidence**.
+The project is now entering its final prototype cycle. **RogueGuard v0.9 will be the last prototype reviewed before the final submission product (v1.0).** The purpose of v0.9 is to consolidate the strongest features, close critical workflow gaps, validate the complete demonstration, and freeze scope. The next release after review is intended to be the final, documented, tested submission build — not another open-ended prototype.
 
 > [!IMPORTANT]
-> **Prototype status:** the current implementation remains a local synthetic simulation built with Python, Streamlit, and SQLite. The expanded capabilities in the roadmap are design targets, not completed features. RogueGuard does not currently discover live identities, read cloud IAM policies, ingest provider audit logs, revoke credentials, or modify cloud resources. All cloud-facing work must be separately implemented and verified in an explicitly authorised sandbox.
+> **Release status:** the current checked-in implementation is the v0.1 foundation. The v0.9 final-prototype scope below is planned work, not completed functionality. The current application remains a local synthetic simulation built with Python, Streamlit, and SQLite. It does not discover live identities, read cloud IAM policies, ingest provider audit logs, revoke credentials, or modify cloud resources. Any cloud operation must be separately implemented and verified in an explicitly authorised sandbox. The v1.0 final product will only be called submission-ready after its acceptance checks and evidence are complete.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/STATUS-EVOLVING%20PROTOTYPE-1f6feb?style=for-the-badge" alt="Evolving prototype">
+  <img src="https://img.shields.io/badge/STATUS-FINAL%20PROTOTYPE%20CYCLE-8250df?style=for-the-badge" alt="Final prototype cycle">
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit">
   <img src="https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white" alt="SQLite">
@@ -126,9 +126,75 @@ The current comparison also treats role names as a set. It does not evaluate con
 
 ---
 
-## 04 / Next prototype: RogueGuard 0.2 concept
+## 04 / Final prototype v0.9 — the last prototype before submission
 
-The target is not an enterprise-ready IAM platform. It is a richer, modular prototype that can demonstrate the complete analyst decision process using synthetic records and replayable evidence.
+This is the **single final prototype cycle**. It is not a commitment to build every feature in the wishlist. The scope is deliberately limited to features that make the current demonstration more complete, explainable, testable, and defensible at review.
+
+The v0.9 review candidate should demonstrate one end-to-end analyst journey using synthetic, replayable data:
+
+**load scenario → inspect identity → understand finding → review policy diff → approve a response plan → simulate action → verify outcome → export evidence.**
+
+### v0.9 scope — required for the final prototype review
+
+#### A. Identity and permission context
+- Add a versioned synthetic fixture format for identities, resources, role bindings, and declared permission baselines.
+- Record identity type, owner, purpose, environment, lifecycle state, and last-reviewed metadata.
+- Model a permission as a binding between a principal, role, and resource, rather than only a flat role list.
+- Preserve the source and rationale for each expected permission baseline.
+- Detect excess grants, missing required grants, unknown roles, missing owners, stale reviews, and broad resource scopes where the fixture provides enough information.
+- Do not automatically grant missing permissions.
+
+#### B. Explainable findings
+- Give each finding a stable ID, rule ID, principal, affected resource, evidence source, severity, confidence, and recommended next action.
+- Separate finding severity, identity status, and confidence; do not present the current role-weight score as a probability.
+- Add finding states: NEW, TRIAGED, ACCEPTED, FALSE POSITIVE, REMEDIATION PLANNED, RESOLVED, and RETESTED.
+- Preserve the original evidence when a finding is accepted or marked as a false positive.
+- Add policy-snapshot comparison to show what changed between two synthetic states.
+
+#### C. Safe response planning
+- Add a read-only review mode and a dry-run plan that shows the exact before/after permission set.
+- Separate **permission reduction** from **identity quarantine**; they must be distinct operator decisions.
+- Show the affected synthetic resources and workloads before a proposed change.
+- Require an operator reason and an explicit confirmation for simulated response actions.
+- Keep a prior state snapshot and a proposed rollback plan.
+- Add post-action verification with VERIFIED, FAILED, or NOT VERIFIED outcomes.
+- Require a review checklist before reactivation; never silently restore removed permissions.
+
+#### D. Evidence and case workflow
+- Group a finding, identity, response plan, approvals, and evidence under a case ID.
+- Record actor, action, reason, UTC timestamp, case ID, before/after state, and outcome in each audit event.
+- Export a case bundle in JSON and CSV, including source snapshots and a SHA-256 integrity manifest.
+- Add redaction for secrets, tokens, personal data, and sensitive resource identifiers.
+- Make reset and deletion explicit. Preserve or export evidence before clearing the demo state.
+
+A local hash manifest helps identify changes to exported files; it does **not** create immutable or independently protected audit storage.
+
+#### E. Analyst dashboard
+- Add a searchable finding inbox with filters for severity, state, identity, owner, and environment.
+- Add an identity detail page with owner, purpose, role bindings, baseline, related findings, and event history.
+- Add a side-by-side policy diff and a compact case timeline.
+- Keep the existing overview, containment console, and audit trail, but align them to the case workflow.
+- Provide a small scenario library with at least the overprivileged exporter and one additional synthetic scenario.
+
+#### F. Verification and engineering quality
+- Add tests for new rules, invalid workflow transitions, approval requirements, rollback, evidence export, reset behaviour, and malformed fixtures.
+- Add fixture-based tests for the provider adapter contract.
+- Add UI smoke tests for the main review and response journeys.
+- Add schema versioning/migrations and a safe database backup path.
+- Keep the CI test workflow required for merge.
+- Keep all fixtures synthetic; prevent credentials, local databases, and sensitive evidence from entering Git.
+
+### Optional only if the required scope is stable
+
+- Identity relationship graph and impersonation-path visualisation.
+- A richer blast-radius graph across synthetic resources.
+- Additional scenario templates and visual analytics.
+
+These are stretch features. They must not delay the acceptance criteria above.
+
+### Cloud integration boundary
+
+The v0.9 prototype should use a mock provider adapter backed by synthetic fixtures. A read-only Google Cloud / Floci adapter is optional and only belongs in scope if sandbox access, supported operations, and mentor approval are confirmed. Cloud writes, credential revocation, and automatic containment remain out of scope unless explicitly authorised and independently verified.
 
 ### A. Identity intelligence
 
@@ -217,9 +283,9 @@ The prototype should be provider-neutral at the core and provider-specific at th
 
 ---
 
-## 05 / Proposed target architecture
+## 05 / Target architecture for the final prototype
 
-The architecture below is a **design target**, not the current code layout.
+The architecture below is a **v0.9 design target**, not the current code layout. It prioritises a complete local analyst workflow; any provider adapter remains optional and separately gated.
 
 ~~~mermaid
 flowchart LR
@@ -259,29 +325,46 @@ flowchart LR
 
 ---
 
-## 06 / Increment plan
+## 06 / Release path — one last prototype, then final product
 
-The work is deliberately staged. The goal is to build a credible prototype, not claim production readiness.
+There are now only **two release milestones** left. The v0.9 review candidate is the last prototype. After the review, work should focus on acceptance fixes and release preparation for v1.0 — not another feature-expansion cycle.
 
-| Increment | Scope | Exit criteria |
-|---|---|---|
-| **0.1 — Foundation (current)** | Synthetic inventory, basic role comparison, illustrative scoring, local containment, SQLite audit, baseline tests | Existing demo runs locally and current tests pass |
-| **0.2 — Analyst prototype** | Rich identity/resource schema, fixture importer, finding rules, searchable finding inbox, explainable severity, policy diff, dry-run plans, split containment actions, case evidence export | A reviewer can load a scenario, explain a finding, preview a response, simulate it, and export evidence |
-| **0.3 — Relationship intelligence** | Identity graph, impersonation paths, blast-radius view, snapshot drift, baseline approval and exceptions | A reviewer can trace why an identity is risky and what connected resources may be affected |
-| **0.4 — Controlled sandbox validation** | Read-only provider adapter, operation-level verification, integration tests, explicit sandbox approval gates | Every claimed cloud read is repeatable and documented; unsupported operations are clearly marked |
-| **0.5 — Response and monitoring experiments** | Approved sandbox response experiments, rollback checks, audit-event ingestion, alert prototypes | Every response has a reviewable plan, approval, recorded result, and post-action verification |
+| Release | Purpose | Scope | Exit gate |
+|---|---|---|---|
+| **v0.1 — Foundation (current code)** | Prove the core idea | Synthetic inventory, basic permission comparison, illustrative score, local containment, SQLite audit, 17 current tests | Existing demo runs and current tests pass |
+| **v0.9 — Final prototype / review candidate** | Demonstrate the complete intended workflow | Prioritised v0.9 scope in Section 04: fixture-based inventory, explainable findings, policy diff, dry-run response, separate response actions, case evidence, and expanded verification | All v0.9 review-critical flows work locally; known limitations and evidence are documented |
+| **v1.0 — Final product / submission release** | Deliver a stable, reproducible academic project | Freeze features; resolve review feedback; run full tests; validate T01–T08; finalise report, demo script, screenshots, setup guide, and release notes | No critical defects; test and evidence pack complete; every integration claim independently verified or clearly labelled simulated/not supported |
 
-### Prototype 0.2 — recommended build order
+### Final prototype review gate — v0.9
 
-1. Introduce versioned fixture data for identities, resources, role bindings, and baselines.
-2. Add a rule engine and a structured finding model.
-3. Build the finding inbox and identity detail page.
-4. Add a dry-run response plan and policy-diff view.
-5. Separate permission removal from full quarantine.
-6. Add case IDs, richer audit events, and evidence export.
-7. Add tests for each rule, invalid transition, rollback, and evidence-preservation path.
+The last prototype should be reviewable against these questions:
 
-This sequence improves the current prototype without prematurely building cloud automation.
+1. Can an evaluator load a known synthetic scenario and understand the identity's purpose, owner, and resource scope?
+2. Can RogueGuard produce a finding that explains exactly what is excessive, missing, unknown, or suspicious?
+3. Can the evaluator inspect the evidence and understand why the finding has its severity and confidence?
+4. Can the evaluator preview a response before any simulated change is applied?
+5. Are permission reduction and identity quarantine separate, explicit decisions?
+6. Does the application record the operator reason, before/after state, and result?
+7. Can it verify the simulated outcome and export a case evidence bundle?
+8. Do automated tests cover success paths, rejected actions, rollback, and evidence preservation?
+
+### Final product acceptance gate — v1.0
+
+The final submission is not another prototype sprint. It should be a controlled release candidate with:
+
+- A frozen feature set and no unfinished high-priority workflow.
+- Reproducible setup instructions and a clean start from a fresh clone.
+- A complete test run, with results recorded rather than assumed.
+- The project test matrix T01–T08 executed where applicable, with evidence attached.
+- A findings register that distinguishes synthetic observations from verified sandbox results.
+- Architecture, limitations, security boundaries, and operational assumptions documented.
+- Redacted screenshots, a short repeatable demo, and a final report.
+- A clear release recommendation and an explicit list of unsupported or unverified operations.
+- No credentials, real personal data, local databases, or unredacted sensitive evidence committed.
+
+**Cloud integration is not a release blocker if the assigned sandbox does not support or authorise an operation.** In that case, retain the local simulation, label the operation accurately, document what was attempted and why it could not be verified, and do not claim cloud-side success.
+
+After v0.9 review, only fix defects, close acceptance gaps, improve clarity, and complete evidence. Defer optional graph analytics, advanced anomaly detection, live monitoring, and other stretch features unless they are essential to passing the final acceptance gate.
 
 ---
 
@@ -371,10 +454,14 @@ RogueGuard/
 
 ## 10 / Project status
 
-RogueGuard is an evolving cybersecurity prototype and research-learning project. The current implementation proves a narrow local workflow. The next iteration is intended to test whether identity inventory, policy context, explainable findings, safe response planning, and evidence preservation can be brought together in one coherent analyst experience.
+**Current release: v0.1 foundation. Next review target: v0.9 final prototype. Intended submission release: v1.0 final product.**
 
-**The objective is not to automate every security action. It is to make each decision explainable, reviewable, testable, and safe.**
+RogueGuard has one final prototype cycle remaining. The purpose of the next review is to validate the complete analyst workflow and identify the last acceptance gaps. Following that review, the project moves into a feature freeze and finalisation phase.
+
+The final product will be a stable, reproducible, evidence-backed academic submission within the verified scope of the local prototype and any authorised sandbox operations. It will not be described as a production-ready cloud security platform.
+
+**Build the final prototype deliberately. Verify it. Freeze it. Then ship the final product.**
 
 ---
 
-[Architecture](docs/architecture.md) · [Test matrix](docs/test_matrix.md) · [Findings register](docs/findings_register.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
+[Architecture](docs/architecture.md) · [Final submission plan](docs/final_submission_plan.md) · [Test matrix](docs/test_matrix.md) · [Findings register](docs/findings_register.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
