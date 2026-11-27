@@ -1,34 +1,35 @@
 <style>
-/* Visible but restrained custom pointer. Native text-entry cursor is preserved. */
-html, body, body * { cursor: none !important; }
-input, textarea, [contenteditable="true"] { cursor: text !important; }
+/* Keep the real browser cursor visible for predictable, accessible interaction.
+   A small halo follows it; text fields keep their normal I-beam cursor. */
 #rg-cursor-ring {
-  position: fixed; left: -100px; top: -100px; z-index: 2147483646;
-  width: 17px; height: 17px; border: 1.5px solid #6d873e; border-radius: 50%;
-  background: rgba(201,243,106,.16); box-shadow: 0 0 0 3px rgba(23,25,27,.07);
-  pointer-events: none; transform: translate3d(-50%,-50%,0);
-  transition: width .16s ease, height .16s ease, background .16s ease, border-color .16s ease;
-  will-change: left, top;
+  position:fixed; left:-100px; top:-100px; z-index:2147483646;
+  width:16px; height:16px; border:1.5px solid #526d32; border-radius:50%;
+  background:rgba(201,243,106,.10);
+  box-shadow:0 0 0 2px rgba(23,25,27,.12);
+  pointer-events:none; transform:translate3d(-50%,-50%,0);
+  transition:width .16s ease,height .16s ease,background .16s ease,border-color .16s ease;
+  will-change:left,top;
 }
 #rg-cursor-ring:after {
   content:""; position:absolute; left:50%; top:50%; width:3px; height:3px;
-  border-radius:50%; background:#202522; transform:translate(-50%,-50%);
+  border-radius:50%; background:#28321c; transform:translate(-50%,-50%);
 }
 #rg-cursor-ring.rg-cursor-hover {
-  width: 31px; height: 31px; border-color:#27331a;
-  background:rgba(201,243,106,.27); box-shadow:0 0 0 5px rgba(201,243,106,.12);
+  width:26px; height:26px; border-color:#27331a;
+  background:rgba(201,243,106,.2);
+  box-shadow:0 0 0 3px rgba(201,243,106,.14);
 }
 #rg-cursor-spotlight {
   position:fixed; z-index:2147483645; left:-1000px; top:-1000px;
-  width:340px; height:340px; border-radius:50%; pointer-events:none;
+  width:300px; height:300px; border-radius:50%; pointer-events:none;
   transform:translate3d(-50%,-50%,0);
-  background:radial-gradient(circle,rgba(201,243,106,.15) 0%,rgba(201,243,106,.065) 27%,rgba(201,243,106,.018) 53%,transparent 72%);
-  mix-blend-mode:multiply; will-change:left,top;
+  background:radial-gradient(circle,rgba(201,243,106,.12) 0%,rgba(201,243,106,.045) 32%,transparent 68%);
+  will-change:left,top;
 }
 #rg-boot-screen {
   position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center;
   justify-content:center; background:#17191b; color:#f5f4ed;
-  transition:opacity .55s ease, visibility .55s ease;
+  transition:opacity .55s ease,visibility .55s ease;
 }
 #rg-boot-screen.rg-boot-out { opacity:0; visibility:hidden; pointer-events:none; }
 #rg-boot-screen .rg-boot-inner { width:min(520px,82vw); }
@@ -101,8 +102,9 @@ input, textarea, [contenteditable="true"] { cursor: text !important; }
 <script>
 (() => {
   const start = () => {
+    if (window.__rogueGuardPointerBound) return;
     try {
-      const bootKey = "rogueguard.boot.v2";
+      const bootKey = "rogueguard.boot.v3";
       if (!window.sessionStorage.getItem(bootKey)) {
         window.sessionStorage.setItem(bootKey,"1");
         const boot = document.createElement("div");
@@ -113,10 +115,9 @@ input, textarea, [contenteditable="true"] { cursor: text !important; }
         window.setTimeout(() => boot.remove(),2100);
       }
     } catch (error) {
-      /* Storage may be disabled; effects remain available without the boot overlay. */
+      /* Private browsing may disable storage; continue without the intro overlay. */
     }
 
-    if (window.__rogueGuardPointerBound) return;
     const pointer = document.createElement("div");
     pointer.id = "rg-cursor-ring";
     const spotlight = document.createElement("div");
@@ -125,13 +126,12 @@ input, textarea, [contenteditable="true"] { cursor: text !important; }
     document.body.appendChild(pointer);
 
     const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.addEventListener("pointermove", (event) => {
+    const onMove = (event) => {
       if (event.pointerType === "touch") return;
       pointer.style.left = event.clientX + "px";
       pointer.style.top = event.clientY + "px";
       spotlight.style.left = event.clientX + "px";
       spotlight.style.top = event.clientY + "px";
-
       const target = event.target instanceof Element ? event.target : null;
       const chrome = target && target.closest(".rg-chrome");
       if (chrome && !reducedMotion) {
@@ -142,16 +142,18 @@ input, textarea, [contenteditable="true"] { cursor: text !important; }
       } else {
         document.querySelectorAll(".rg-chrome").forEach((item) => { item.style.transform = ""; });
       }
-
       if (target && target.closest("button, a, [role='tab'], .rg-node, input, textarea")) {
         pointer.classList.add("rg-cursor-hover");
       } else {
         pointer.classList.remove("rg-cursor-hover");
       }
-    }, {passive:true, capture:true});
-
-    window.addEventListener("pointerdown", () => pointer.classList.add("rg-cursor-hover"), {passive:true});
-    window.addEventListener("pointerup", () => pointer.classList.remove("rg-cursor-hover"), {passive:true});
+    };
+    document.addEventListener("pointermove",onMove,{passive:true,capture:true});
+    document.addEventListener("pointerleave",() => {
+      pointer.style.left="-100px"; spotlight.style.left="-1000px";
+    },{passive:true});
+    document.addEventListener("pointerdown",() => pointer.classList.add("rg-cursor-hover"),{passive:true});
+    document.addEventListener("pointerup",() => pointer.classList.remove("rg-cursor-hover"),{passive:true});
     window.__rogueGuardPointerBound = true;
   };
 
