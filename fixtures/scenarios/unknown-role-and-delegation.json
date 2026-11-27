@@ -1,0 +1,143 @@
+{
+  "scenario_id": "unknown-role-and-delegation",
+  "name": "Unknown Role and Delegation Chain",
+  "version": "1.0.0",
+  "description": "Synthetic identity graph with an unknown role, broad resource scope, and a service-account delegation relationship.",
+  "resources": [
+    {
+      "resource_id": "project:research-demo",
+      "resource_type": "project",
+      "name": "Research demo project",
+      "environment": "demo",
+      "sensitivity": "HIGH"
+    },
+    {
+      "resource_id": "bucket:research-data",
+      "resource_type": "bucket",
+      "name": "Research dataset bucket",
+      "environment": "demo",
+      "sensitivity": "RESTRICTED"
+    },
+    {
+      "resource_id": "service:etl-worker",
+      "resource_type": "service",
+      "name": "ETL worker",
+      "environment": "demo",
+      "sensitivity": "HIGH"
+    }
+  ],
+  "identities": [
+    {
+      "principal": "svc-etl-worker@research-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": "Research Platform",
+      "purpose": "Read the approved dataset and run a scheduled ETL job",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2025-08-01T10:00:00Z",
+      "last_observed_at": "2026-11-26T08:00:00Z",
+      "review_due_at": "2026-12-20"
+    },
+    {
+      "principal": "svc-data-bridge@research-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": null,
+      "purpose": "Legacy data bridge",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2024-01-01T10:00:00Z",
+      "last_observed_at": "2025-02-01T08:00:00Z",
+      "review_due_at": "2025-02-01"
+    },
+    {
+      "principal": "svc-model-runner@research-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": "ML Platform",
+      "purpose": "Run approved model jobs",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2025-05-01T10:00:00Z",
+      "last_observed_at": "2026-11-20T08:00:00Z",
+      "review_due_at": "2026-12-01"
+    }
+  ],
+  "baselines": [
+    {
+      "principal": "svc-etl-worker@research-demo.iam",
+      "version": "2",
+      "owner": "Research Platform",
+      "purpose": "Read approved dataset and run ETL",
+      "rationale": "Narrow read access to research dataset.",
+      "approval_state": "APPROVED",
+      "approved_by": "Synthetic Research Owner",
+      "approved_at": "2026-09-01T10:00:00Z",
+      "required_roles": [
+        "storage.objectViewer"
+      ]
+    },
+    {
+      "principal": "svc-data-bridge@research-demo.iam",
+      "version": "1",
+      "owner": null,
+      "purpose": "Retirement review",
+      "rationale": "Legacy account; no active access expected.",
+      "approval_state": "UNREVIEWED",
+      "approved_by": null,
+      "approved_at": null,
+      "required_roles": []
+    },
+    {
+      "principal": "svc-model-runner@research-demo.iam",
+      "version": "1",
+      "owner": "ML Platform",
+      "purpose": "Run model jobs",
+      "rationale": "Workload access pending owner review.",
+      "approval_state": "PENDING",
+      "approved_by": null,
+      "approved_at": null,
+      "required_roles": [
+        "storage.objectViewer"
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "principal": "svc-etl-worker@research-demo.iam",
+      "role": "storage.objectViewer",
+      "resource_id": "bucket:research-data",
+      "source": "synthetic-policy"
+    },
+    {
+      "principal": "svc-etl-worker@research-demo.iam",
+      "role": "research.datasetSuperuser",
+      "resource_id": "project:research-demo",
+      "source": "imported-fixture"
+    },
+    {
+      "principal": "svc-data-bridge@research-demo.iam",
+      "role": "storage.admin",
+      "resource_id": "project:research-demo",
+      "source": "legacy-policy-snapshot"
+    },
+    {
+      "principal": "svc-model-runner@research-demo.iam",
+      "role": "iam.serviceAccountTokenCreator",
+      "resource_id": "project:research-demo",
+      "source": "synthetic-policy"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "svc-etl-worker@research-demo.iam",
+      "target": "svc-model-runner@research-demo.iam",
+      "relationship_type": "CAN_IMPERSONATE",
+      "description": "Synthetic delegation edge used to demonstrate relationship context."
+    },
+    {
+      "source": "svc-model-runner@research-demo.iam",
+      "target": "service:etl-worker",
+      "relationship_type": "USED_BY",
+      "description": "Synthetic workload relation."
+    }
+  ]
+}
