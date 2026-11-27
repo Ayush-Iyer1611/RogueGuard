@@ -27,6 +27,18 @@ class TestRogueGuardUIAssets(unittest.TestCase):
         self.assertIn('[data-testid="stSidebar"] h1', content)
         self.assertIn('font-family: "Barlow Condensed"', content)
 
+    def test_sidebar_collapse_icon_keeps_material_symbols_font(self):
+        content = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn('[data-testid="stSidebarCollapseButton"] span', content)
+        self.assertIn('font-family: "Material Symbols Rounded" !important', content)
+        self.assertIn('font-feature-settings: "liga"', content)
+
+    def test_cursor_uses_custom_svg_and_preserves_text_cursor(self):
+        content = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn('cursor: url("data:image/svg+xml,', content)
+        self.assertIn('cursor: text !important', content)
+        self.assertNotIn('cursor: none', content)
+
 
 if __name__ == "__main__":
     unittest.main()
