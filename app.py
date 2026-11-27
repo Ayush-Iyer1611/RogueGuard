@@ -719,15 +719,18 @@ def inject_theme():
             -webkit-font-feature-settings: "liga" !important;
             -webkit-font-smoothing: antialiased !important;
         }
-        /* A custom two-tone SVG arrow cursor; text fields keep their I-beam. */
+        /* Custom two-tone SVG arrow. Unlike the earlier overlay, this is a native CSS cursor. */
+        :root {
+            --rg-arrow-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2 L3 23 L9 17 L13.5 27 L18 25 L13 16 L23 16 Z' fill='%2317191b' stroke='%23f8f7f2' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 5 L5 18.5 L9 14.8 L14.5 24 L15.8 23.4 L11.1 14.3 L19 14.3 Z' fill='%23c9f36a'/%3E%3C/svg%3E") 3 2, auto;
+        }
         :root, body, body * {
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2 L3 23 L9 17 L13.5 27 L18 25 L13 16 L23 16 Z' fill='%2317191b' stroke='%23f8f7f2' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 5 L5 18.5 L9 14.8 L14.5 24 L15.8 23.4 L11.1 14.3 L19 14.3 Z' fill='%23c9f36a'/%3E%3C/svg%3E") 3 2, auto !important;
+            cursor: var(--rg-arrow-cursor) !important;
         }
         input, textarea, [contenteditable="true"] {
             cursor: text !important;
         }
         button, a, select, [role="button"], [role="tab"] {
-            cursor: pointer !important;
+            cursor: var(--rg-arrow-cursor) !important;
         }
         </style>
         """,
