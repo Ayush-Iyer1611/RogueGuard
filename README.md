@@ -55,7 +55,7 @@ RogueGuard explores this workflow in a controlled, reproducible synthetic enviro
 | Verification | Compares actual post-action state against the reviewed plan |
 | Evidence export | JSON case bundle, CSV findings, SHA-256 manifest, and optional identifier/token-like redaction |
 | Relationship view | Displays relationship edges supplied by the synthetic scenario |
-| Automated tests | Unit, database, and v0.9 workflow regression tests in GitHub Actions |
+| Automated tests | Unit, database, v0.9 workflow regression, and Streamlit startup smoke tests in GitHub Actions |
 
 ### Current synthetic scenarios
 
@@ -129,7 +129,7 @@ These limitations are deliberately visible so the project does not overclaim wha
 | Reviewer identity is a label | Two-person approval is not enterprise authentication | Separate reviewer field is required, but not authenticated |
 | SQLite is local and mutable | Local audit is not immutable evidence storage | Event history and export manifest help with review; independent retention is future work |
 | Export hash limitations | A hash manifest alone does not protect the manifest or prove trusted time | Export explicitly warns that hashes are not immutable storage |
-| No UI automation coverage yet | CI tests the domain workflow, not every browser interaction | Manual T01–T08 review and UI smoke tests remain part of the release gate |
+| Limited UI automation coverage | CI verifies the Streamlit app starts, but does not automate every operator interaction | Manual T01–T08 and end-to-end interaction review remain part of the release gate |
 
 ## 05 / Final prototype v0.9 — scope freeze
 
