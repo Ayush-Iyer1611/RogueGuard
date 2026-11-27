@@ -35,7 +35,8 @@ class TestRogueGuardUIAssets(unittest.TestCase):
 
     def test_cursor_uses_custom_svg_and_preserves_text_cursor(self):
         content = (ROOT / "app.py").read_text(encoding="utf-8")
-        self.assertIn('cursor: url("data:image/svg+xml,', content)
+        self.assertIn('--rg-arrow-cursor:', content)
+        self.assertIn('cursor: var(--rg-arrow-cursor) !important', content)
         self.assertIn('cursor: text !important', content)
         self.assertNotIn('cursor: none', content)
 
