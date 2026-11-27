@@ -34,7 +34,8 @@ FINDING_TRANSITIONS = {
     "TRIAGED": {"ACCEPTED", "FALSE_POSITIVE", "REMEDIATION_PLANNED"},
     "ACCEPTED": {"TRIAGED", "REMEDIATION_PLANNED"},
     "FALSE_POSITIVE": {"TRIAGED"},
-    "REMEDIATION_PLANNED": {"TRIAGED", "RESOLVED"},
+    "REMEDIATION_PLANNED": {"TRIAGED", "RESOLVED", "CONTAINED"},
+    "CONTAINED": {"TRIAGED", "RETESTED"},
     "RESOLVED": {"RETESTED", "TRIAGED"},
     "RETESTED": {"TRIAGED"},
 }
@@ -120,6 +121,12 @@ def initialize_prototype() -> None:
           created_by TEXT NOT NULL, before_json TEXT NOT NULL,
           after_json TEXT NOT NULL, status TEXT NOT NULL,
           created_at TEXT NOT NULL, executed_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS rg_finding_history (
+          history_id TEXT PRIMARY KEY, finding_id TEXT NOT NULL,
+          actor TEXT NOT NULL, old_status TEXT NOT NULL,
+          new_status TEXT NOT NULL, reason TEXT NOT NULL,
+          created_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS rg_approvals (
           approval_id TEXT PRIMARY KEY, plan_id TEXT NOT NULL,
@@ -393,8 +400,20 @@ def update_finding_status(finding_id: str, new_status: str, actor: str, reason: 
             raise ValueError("Finding does not exist.")
         if new_status not in FINDING_TRANSITIONS.get(row["status"], set()):
             raise ValueError(f"Invalid finding transition: {row['status']} -> {new_status}")
+        now = _utc()
         con.execute("UPDATE rg_findings SET status=?,updated_at=? WHERE finding_id=?",
-                    (new_status, _utc(), finding_id))
+                    (new_status, now, finding_id))
+        con.execute("INSERT INTO rg_finding_history VALUES(?,?,?,?,?,?,?)",
+                    ("FH-" + uuid.uuid4().hex[:12].upper(), finding_id,
+                     actor.strip(), row["status"], new_status, reason.strip(), now))
+        linked_cases = [r["case_id"] for r in con.execute(
+            "SELECT case_id FROM rg_case_findings WHERE finding_id=?", (finding_id,))]
+        for case_id in linked_cases:
+            con.execute("INSERT INTO rg_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                ("EVT-" + uuid.uuid4().hex[:12].upper(), case_id, None,
+                 row["principal"], actor.strip(), "FINDING_STATE_CHANGE",
+                 reason.strip(), json.dumps({"status": row["status"]}),
+                 json.dumps({"status": new_status}), "RECORDED", now))
 
 def create_case(scenario_id: str, title: str, actor: str, finding_ids: list[str]) -> str:
     initialize_prototype()
@@ -451,8 +470,8 @@ def _snapshot(con: sqlite3.Connection, scenario_id: str, principal: str) -> dict
 def create_action_plan(case_id: str, principal: str, action_type: str,
                        reason: str, actor: str, finding_ids: list[str] | None = None) -> str:
     initialize_prototype()
-    if action_type not in {"REMOVE_EXCESS", "QUARANTINE"}:
-        raise ValueError("Action must be REMOVE_EXCESS or QUARANTINE.")
+    if action_type not in {"REMOVE_EXCESS", "QUARANTINE", "REACTIVATE"}:
+        raise ValueError("Action must be REMOVE_EXCESS, QUARANTINE, or REACTIVATE.")
     if not reason.strip() or not actor.strip():
         raise ValueError("Action reason and actor are required.")
     with _connect() as con:
@@ -466,8 +485,18 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
                                    (case["scenario_id"], principal)).fetchone()
             required = set(json.loads(baseline["required_roles_json"])) if baseline else set()
             after["bindings"] = [b for b in before["bindings"] if b["role"] in required]
-        else:
+        elif action_type == "QUARANTINE":
             after["identity"]["lifecycle_state"] = "QUARANTINED"
+        else:
+            if before["identity"]["lifecycle_state"] != "QUARANTINED":
+                raise ValueError("Only quarantined identities can be reactivated.")
+            baseline = con.execute("SELECT required_roles_json FROM rg_baselines WHERE scenario_id=? AND principal=?",
+                                   (case["scenario_id"], principal)).fetchone()
+            required = set(json.loads(baseline["required_roles_json"])) if baseline else set()
+            current_roles = {b["role"] for b in before["bindings"]}
+            if not current_roles.issubset(required):
+                raise ValueError("Remove excess permissions and verify them before reactivation.")
+            after["identity"]["lifecycle_state"] = "ACTIVE"
         plan_id = "PLAN-" + uuid.uuid4().hex[:10].upper()
         now = _utc()
         con.execute("INSERT INTO rg_action_plans VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -523,8 +552,11 @@ def execute_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
                 con.execute("INSERT INTO rg_bindings VALUES(?,?,?,?,?,?,?,?,?)",
                     (b["binding_id"], plan["scenario_id"], plan["principal"], b["role"],
                      b["resource_id"], b["source"], b["condition"], b["inherited"], _utc()))
-        else:
+        elif plan["action_type"] == "QUARANTINE":
             con.execute("UPDATE rg_identities SET lifecycle_state='QUARANTINED' WHERE scenario_id=? AND principal=?",
+                        (plan["scenario_id"], plan["principal"]))
+        else:
+            con.execute("UPDATE rg_identities SET lifecycle_state='ACTIVE' WHERE scenario_id=? AND principal=?",
                         (plan["scenario_id"], plan["principal"]))
         now = _utc()
         con.execute("UPDATE rg_action_plans SET status='EXECUTED',executed_at=? WHERE plan_id=?",
@@ -557,6 +589,12 @@ def verify_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
         if passed and plan["action_type"] == "REMOVE_EXCESS":
             con.execute("UPDATE rg_findings SET status='RESOLVED',updated_at=? WHERE finding_id IN (SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status='REMEDIATION_PLANNED'",
                         (_utc(), plan["case_id"], plan["principal"]))
+        elif passed and plan["action_type"] == "QUARANTINE":
+            con.execute("UPDATE rg_findings SET status='CONTAINED',updated_at=? WHERE finding_id IN (SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status='REMEDIATION_PLANNED'",
+                        (_utc(), plan["case_id"], plan["principal"]))
+        elif passed and plan["action_type"] == "REACTIVATE":
+            con.execute("UPDATE rg_findings SET status='TRIAGED',updated_at=? WHERE finding_id IN (SELECT finding_id FROM rg_case_findings WHERE case_id=?) AND principal=? AND status='CONTAINED'",
+                        (_utc(), plan["case_id"], plan["principal"]))
         return {"plan_id": plan_id, "result": result, "expected": expected, "actual": actual}
 
 def list_plans(case_id: str | None = None) -> list[dict[str, Any]]:
@@ -586,6 +624,8 @@ def _redact(value: Any) -> Any:
     if isinstance(value, str):
         value = re.sub(r"(?i)(token|secret|password|api[_-]?key)(\s*[:=]\s*)[^\s,;]+",
                        r"\1\2[REDACTED]", value)
+        value = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+                       "[REDACTED-PRINCIPAL]", value)
         return value
     return value
 
@@ -613,13 +653,26 @@ def export_case_bundle(case_id: str, output_dir: str | Path | None = None,
             "SELECT a.* FROM rg_approvals a JOIN rg_action_plans p ON a.plan_id=p.plan_id WHERE p.case_id=?",
             (case_id,))]
         events = [dict(r) for r in con.execute("SELECT * FROM rg_events WHERE case_id=?", (case_id,))]
+        finding_history = []
+        for fid in finding_ids:
+            finding_history.extend([dict(r) for r in con.execute(
+                "SELECT * FROM rg_finding_history WHERE finding_id=? ORDER BY created_at", (fid,))])
+        resources = [dict(r) for r in con.execute(
+            "SELECT * FROM rg_resources WHERE scenario_id=?", (case_data["scenario_id"],))]
+        relationships = [dict(r) for r in con.execute(
+            "SELECT * FROM rg_relationships WHERE scenario_id=?", (case_data["scenario_id"],))]
+        scenario = con.execute("SELECT * FROM rg_scenarios WHERE scenario_id=?",
+                                (case_data["scenario_id"],)).fetchone()
         principals = sorted({f["principal"] for f in findings} | {p["principal"] for p in plans})
         identities = []
         for principal in principals:
             snap = _snapshot(con, case_data["scenario_id"], principal)
             identities.append(snap)
-        payload = {"case": case_data, "identities": identities, "findings": findings,
-                   "action_plans": plans, "approvals": approvals, "events": events,
+        payload = {"case": case_data, "scenario": dict(scenario) if scenario else {},
+                   "resources": resources, "relationships": relationships,
+                   "identities": identities, "findings": findings,
+                   "finding_history": finding_history, "action_plans": plans,
+                   "approvals": approvals, "events": events,
                    "exported_at": _utc(), "simulation_notice": "Synthetic local simulation; not evidence of cloud-side changes."}
     if redact:
         payload = _redact(payload)
@@ -703,3 +756,11 @@ def get_plan(plan_id: str) -> dict[str, Any] | None:
         plan["approvals"]=[dict(r) for r in con.execute(
             "SELECT * FROM rg_approvals WHERE plan_id=? ORDER BY created_at",(plan_id,))]
         return plan
+
+
+def list_finding_history(finding_id: str) -> list[dict[str, Any]]:
+    initialize_prototype()
+    with _connect() as con:
+        return [dict(r) for r in con.execute(
+            "SELECT * FROM rg_finding_history WHERE finding_id=? ORDER BY created_at",
+            (finding_id,))]
