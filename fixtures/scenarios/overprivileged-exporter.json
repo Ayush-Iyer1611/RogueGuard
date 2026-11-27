@@ -1,0 +1,206 @@
+{
+  "scenario_id": "overprivileged-exporter",
+  "name": "Overprivileged Results Exporter",
+  "version": "1.0.0",
+  "description": "Synthetic campus workload where a results exporter has excess storage, secret, and service-account permissions. Includes an older unowned reporting identity.",
+  "resources": [
+    {
+      "resource_id": "project:campus-demo",
+      "resource_type": "project",
+      "name": "Campus demo project",
+      "environment": "demo",
+      "sensitivity": "HIGH"
+    },
+    {
+      "resource_id": "bucket:exam-results",
+      "resource_type": "bucket",
+      "name": "Examination results bucket",
+      "environment": "demo",
+      "sensitivity": "RESTRICTED"
+    },
+    {
+      "resource_id": "bucket:library-public",
+      "resource_type": "bucket",
+      "name": "Public library catalogue",
+      "environment": "demo",
+      "sensitivity": "PUBLIC"
+    },
+    {
+      "resource_id": "bucket:campus-backups",
+      "resource_type": "bucket",
+      "name": "Campus backup archive",
+      "environment": "demo",
+      "sensitivity": "HIGH"
+    },
+    {
+      "resource_id": "service:results-exporter",
+      "resource_type": "service",
+      "name": "Results export workload",
+      "environment": "demo",
+      "sensitivity": "HIGH"
+    }
+  ],
+  "identities": [
+    {
+      "principal": "svc-results-export@campus-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": "Examination Office",
+      "purpose": "Export approved examination result reports",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2025-01-10T10:00:00Z",
+      "last_observed_at": "2026-11-26T09:00:00Z",
+      "review_due_at": "2026-12-15"
+    },
+    {
+      "principal": "svc-library-reader@campus-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": "Library Systems",
+      "purpose": "Read approved public library catalogue files",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2025-04-01T10:00:00Z",
+      "last_observed_at": "2026-11-26T09:00:00Z",
+      "review_due_at": "2026-12-20"
+    },
+    {
+      "principal": "svc-reporting-old@campus-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": null,
+      "purpose": "Legacy reporting integration with no current owner",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2023-02-01T10:00:00Z",
+      "last_observed_at": "2024-03-01T10:00:00Z",
+      "review_due_at": "2024-06-01"
+    },
+    {
+      "principal": "svc-backup-agent@campus-demo.iam",
+      "identity_type": "SERVICE_ACCOUNT",
+      "owner": "IT Operations",
+      "purpose": "Read backup metadata and create backup archives",
+      "environment": "demo",
+      "lifecycle_state": "ACTIVE",
+      "created_at": "2025-02-01T10:00:00Z",
+      "last_observed_at": "2026-11-26T02:00:00Z",
+      "review_due_at": "2026-12-30"
+    }
+  ],
+  "baselines": [
+    {
+      "principal": "svc-results-export@campus-demo.iam",
+      "version": "3",
+      "owner": "Examination Office",
+      "purpose": "Export approved examination result reports",
+      "rationale": "Read-only export process; no secret access or identity delegation is needed.",
+      "approval_state": "APPROVED",
+      "approved_by": "Synthetic Data Governance Reviewer",
+      "approved_at": "2026-08-15T10:00:00Z",
+      "required_roles": [
+        "storage.objectViewer"
+      ]
+    },
+    {
+      "principal": "svc-library-reader@campus-demo.iam",
+      "version": "2",
+      "owner": "Library Systems",
+      "purpose": "Read approved public catalogue",
+      "rationale": "Read-only access to public catalogue bucket.",
+      "approval_state": "APPROVED",
+      "approved_by": "Synthetic Library Owner",
+      "approved_at": "2026-09-01T10:00:00Z",
+      "required_roles": [
+        "storage.objectViewer"
+      ]
+    },
+    {
+      "principal": "svc-reporting-old@campus-demo.iam",
+      "version": "1",
+      "owner": null,
+      "purpose": "Legacy integration; owner confirmation required.",
+      "rationale": "Retirement review required.",
+      "approval_state": "UNREVIEWED",
+      "approved_by": null,
+      "approved_at": null,
+      "required_roles": []
+    },
+    {
+      "principal": "svc-backup-agent@campus-demo.iam",
+      "version": "4",
+      "owner": "IT Operations",
+      "purpose": "Read metadata and create backup objects.",
+      "rationale": "Object creation only; does not require object deletion or administration.",
+      "approval_state": "APPROVED",
+      "approved_by": "Synthetic IT Owner",
+      "approved_at": "2026-10-01T10:00:00Z",
+      "required_roles": [
+        "storage.objectViewer",
+        "storage.objectCreator"
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "principal": "svc-results-export@campus-demo.iam",
+      "role": "storage.objectViewer",
+      "resource_id": "bucket:exam-results",
+      "source": "synthetic-iam-policy"
+    },
+    {
+      "principal": "svc-results-export@campus-demo.iam",
+      "role": "storage.objectAdmin",
+      "resource_id": "bucket:exam-results",
+      "source": "synthetic-iam-policy"
+    },
+    {
+      "principal": "svc-results-export@campus-demo.iam",
+      "role": "secretmanager.secretAccessor",
+      "resource_id": "project:campus-demo",
+      "source": "synthetic-iam-policy"
+    },
+    {
+      "principal": "svc-results-export@campus-demo.iam",
+      "role": "iam.serviceAccountTokenCreator",
+      "resource_id": "project:campus-demo",
+      "source": "synthetic-iam-policy"
+    },
+    {
+      "principal": "svc-library-reader@campus-demo.iam",
+      "role": "storage.objectViewer",
+      "resource_id": "bucket:library-public",
+      "source": "synthetic-iam-policy"
+    },
+    {
+      "principal": "svc-reporting-old@campus-demo.iam",
+      "role": "storage.admin",
+      "resource_id": "project:campus-demo",
+      "source": "legacy-policy-snapshot"
+    },
+    {
+      "principal": "svc-backup-agent@campus-demo.iam",
+      "role": "storage.objectViewer",
+      "resource_id": "bucket:campus-backups",
+      "source": "synthetic-iam-policy"
+    },
+    {
+      "principal": "svc-backup-agent@campus-demo.iam",
+      "role": "storage.objectCreator",
+      "resource_id": "bucket:campus-backups",
+      "source": "synthetic-iam-policy"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "svc-results-export@campus-demo.iam",
+      "target": "svc-reporting-old@campus-demo.iam",
+      "relationship_type": "TOKEN_CREATOR",
+      "description": "Synthetic delegation relationship for attack-path exploration."
+    },
+    {
+      "source": "svc-results-export@campus-demo.iam",
+      "target": "service:results-exporter",
+      "relationship_type": "USED_BY",
+      "description": "The export workload uses this service identity."
+    }
+  ]
+}
