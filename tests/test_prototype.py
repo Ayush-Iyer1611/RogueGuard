@@ -144,6 +144,73 @@ class TestRogueGuardV09(unittest.TestCase):
         with self.assertRaises(ValueError):
             prototype.load_scenario(str(fixture))
 
+    def test_finding_state_changes_are_audited(self):
+        finding_id = self._excess_finding_ids()[0]
+        case_id = prototype.create_case(
+            self.scenario, "Finding audit case", "analyst", [finding_id]
+        )
+        prototype.update_finding_status(
+            finding_id, "ACCEPTED", "reviewer", "Owner confirmed temporary exception."
+        )
+        history = prototype.list_finding_history(finding_id)
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["old_status"], "TRIAGED")
+        self.assertEqual(history[0]["new_status"], "ACCEPTED")
+        events = prototype.list_events(case_id)
+        self.assertEqual(events[0]["event_type"], "FINDING_STATE_CHANGE")
+
+    def test_quarantine_requires_remediation_before_reactivation(self):
+        finding_ids = self._excess_finding_ids()
+        case_id = prototype.create_case(
+            self.scenario, "Quarantine then remediate", "analyst", finding_ids
+        )
+        quarantine = prototype.create_action_plan(
+            case_id, self.principal, "QUARANTINE", "Contain pending review.", "analyst"
+        )
+        prototype.approve_action_plan(quarantine, "reviewer", "APPROVED", "Approved quarantine.")
+        prototype.execute_action_plan(quarantine, "operator")
+        self.assertEqual(prototype.verify_action_plan(quarantine, "verifier")["result"], "VERIFIED")
+        self.assertEqual(
+            prototype.get_identity(self.scenario, self.principal)["lifecycle_state"],
+            "QUARANTINED"
+        )
+        self.assertTrue(any(
+            f["status"] == "CONTAINED" for f in prototype.list_findings(self.scenario)
+            if f["principal"] == self.principal and f["rule_id"] == "EXCESS_ROLE"
+        ))
+        with self.assertRaises(ValueError):
+            prototype.create_action_plan(
+                case_id, self.principal, "REACTIVATE",
+                "Attempt early reactivation.", "analyst"
+            )
+        removal = prototype.create_action_plan(
+            case_id, self.principal, "REMOVE_EXCESS",
+            "Remove excess grants while still quarantined.", "analyst", finding_ids
+        )
+        prototype.approve_action_plan(removal, "reviewer2", "APPROVED", "Approved role reduction.")
+        prototype.execute_action_plan(removal, "operator")
+        self.assertEqual(prototype.verify_action_plan(removal, "verifier")["result"], "VERIFIED")
+        reactivate = prototype.create_action_plan(
+            case_id, self.principal, "REACTIVATE",
+            "Reactivate after excess grants have been removed.", "analyst"
+        )
+        prototype.approve_action_plan(reactivate, "reviewer3", "APPROVED", "Baseline confirmed.")
+        prototype.execute_action_plan(reactivate, "operator")
+        self.assertEqual(prototype.verify_action_plan(reactivate, "verifier")["result"], "VERIFIED")
+        self.assertEqual(
+            prototype.get_identity(self.scenario, self.principal)["lifecycle_state"],
+            "ACTIVE"
+        )
+
+    def test_evidence_export_redacts_principals(self):
+        case_id = prototype.create_case(
+            self.scenario, "Redacted evidence", "analyst", self._excess_finding_ids()
+        )
+        paths = prototype.export_case_bundle(case_id, self.temp.name, redact=True)
+        payload = Path(paths["json"]).read_text()
+        self.assertNotIn("svc-results-export@campus-demo.iam", payload)
+        self.assertIn("[REDACTED-PRINCIPAL]", payload)
+
     def test_dashboard_summary_reports_loaded_state(self):
         summary = prototype.dashboard_summary(self.scenario)
         self.assertEqual(summary["identities"], 4)
