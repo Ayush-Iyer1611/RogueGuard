@@ -210,6 +210,12 @@ class TestRogueGuardV09(unittest.TestCase):
         payload = Path(paths["json"]).read_text()
         self.assertNotIn("svc-results-export@campus-demo.iam", payload)
         self.assertIn("[REDACTED-PRINCIPAL]", payload)
+        self.assertNotIn("project:campus-demo", payload)
+        self.assertIn("[REDACTED-RESOURCE]", payload)
+        self.assertTrue(any(
+            identity.get("baseline") and "required_roles" in identity["baseline"]
+            for identity in json.loads(payload)["identities"]
+        ))
 
     def test_plan_rejects_findings_for_another_principal(self):
         target_finding = self._excess_finding_ids()[0]
