@@ -127,7 +127,52 @@ def inject_theme():
             background: #17191b !important;
             border-right: 1px solid #3a3d40;
         }
-        [data-testid="stSidebar"] * { color: #f3f2ed !important; }
+        [data-testid="stSidebar"] * {
+            color: #f3f2ed !important;
+            font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
+        }
+        [data-testid="stSidebar"] .rg-sidebar-brand-name,
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong {
+            font-family: "Barlow Condensed", Impact, "Arial Narrow", sans-serif !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            letter-spacing: .025em !important;
+        }
+        [data-testid="stSidebar"] .rg-sidebar-brand-name {
+            display: block;
+            font-size: 2rem !important;
+            line-height: .88 !important;
+            letter-spacing: -.025em !important;
+        }
+        [data-testid="stSidebar"] .rg-sidebar-brand-sub {
+            display: block;
+            margin-top: .35rem;
+            color: #a6aaad !important;
+            font: 700 .58rem/1.5 "IBM Plex Mono", monospace !important;
+            letter-spacing: .15em !important;
+            text-transform: uppercase;
+        }
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong {
+            display: inline-block;
+            font-size: 1.15rem !important;
+            line-height: 1 !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,
+        [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+            font-family: "IBM Plex Mono", monospace !important;
+            color: #a6aaad !important;
+            font-size: .61rem !important;
+            letter-spacing: .075em !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stButton"] button {
+            font-family: "Barlow Condensed", Impact, "Arial Narrow", sans-serif !important;
+            font-size: 1.08rem !important;
+            font-weight: 800 !important;
+            letter-spacing: .09em !important;
+        }
+        [data-testid="stSidebar"] [data-baseweb="select"] * {
+            font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
+        }
         [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
             color: #a6aaad !important;
         }
@@ -718,8 +763,8 @@ if "rg_scenario_id" not in st.session_state or st.session_state.rg_scenario_id n
 
 with st.sidebar:
     st.markdown(
-        '<div style="font-size:1.3rem;font-weight:900;letter-spacing:-.06em">ROGU<span style="color:#c9f36a">E</span>GUARD'
-        '<div style="font:700 .58rem ui-monospace,monospace;letter-spacing:.16em;color:#9ea3a6;margin-top:.2rem">IDENTITY SECURITY / V0.9</div></div>',
+        '<div class="rg-sidebar-brand"><span class="rg-sidebar-brand-name">ROGU<span style="color:#c9f36a">E</span>GUARD</span>'
+        '<span class="rg-sidebar-brand-sub">IDENTITY SECURITY / V0.9</span></div>',
         unsafe_allow_html=True,
     )
     st.divider()
