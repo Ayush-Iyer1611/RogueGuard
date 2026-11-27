@@ -35,7 +35,7 @@ FINDING_TRANSITIONS = {
     "ACCEPTED": {"TRIAGED", "REMEDIATION_PLANNED"},
     "FALSE_POSITIVE": {"TRIAGED"},
     "REMEDIATION_PLANNED": {"TRIAGED", "RESOLVED", "CONTAINED"},
-    "CONTAINED": {"TRIAGED", "RETESTED"},
+    "CONTAINED": {"TRIAGED", "REMEDIATION_PLANNED", "RETESTED"},
     "RESOLVED": {"RETESTED", "TRIAGED"},
     "RETESTED": {"TRIAGED"},
 }
@@ -490,6 +490,8 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
         case = con.execute("SELECT * FROM rg_cases WHERE case_id=?", (case_id,)).fetchone()
         if case is None:
             raise ValueError("Case does not exist.")
+        if case["status"] == "CLOSED":
+            raise ValueError("Closed cases must be reopened before planning a response.")
         before = _snapshot(con, case["scenario_id"], principal)
         after = json.loads(json.dumps(before))
         if action_type == "REMOVE_EXCESS":
@@ -498,6 +500,8 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
             required = set(json.loads(baseline["required_roles_json"])) if baseline else set()
             after["bindings"] = [b for b in before["bindings"] if b["role"] in required]
         elif action_type == "QUARANTINE":
+            if before["identity"]["lifecycle_state"] != "ACTIVE":
+                raise ValueError("Only active identities can be quarantined.")
             after["identity"]["lifecycle_state"] = "QUARANTINED"
         else:
             if before["identity"]["lifecycle_state"] != "QUARANTINED":
@@ -509,6 +513,21 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
             if not current_roles.issubset(required):
                 raise ValueError("Remove excess permissions and verify them before reactivation.")
             after["identity"]["lifecycle_state"] = "ACTIVE"
+        if before == after:
+            raise ValueError("The proposed action would not change the current state.")
+        linked_finding_ids = finding_ids or [
+            r["finding_id"] for r in con.execute(
+                "SELECT f.finding_id FROM rg_findings f "
+                "JOIN rg_case_findings cf ON cf.finding_id=f.finding_id "
+                "WHERE cf.case_id=? AND f.principal=?",
+                (case_id, principal))
+        ]
+        for fid in linked_finding_ids:
+            finding = con.execute(
+                "SELECT scenario_id,principal FROM rg_findings WHERE finding_id=?", (fid,)
+            ).fetchone()
+            if finding is None or finding["scenario_id"] != case["scenario_id"] or finding["principal"] != principal:
+                raise ValueError("Every linked finding must belong to this case scenario and target identity.")
         plan_id = "PLAN-" + uuid.uuid4().hex[:10].upper()
         now = _utc()
         con.execute("INSERT INTO rg_action_plans VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -520,18 +539,16 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
              principal, actor.strip(), "DRY_RUN_CREATED", reason.strip(),
              json.dumps(before, sort_keys=True), json.dumps(after, sort_keys=True),
              "PENDING_APPROVAL", now))
-        linked_finding_ids = finding_ids or [
-            r["finding_id"] for r in con.execute(
-                "SELECT f.finding_id FROM rg_findings f "
-                "JOIN rg_case_findings cf ON cf.finding_id=f.finding_id "
-                "WHERE cf.case_id=? AND f.principal=?",
-                (case_id, principal))
-        ]
         for fid in linked_finding_ids:
             con.execute("INSERT OR IGNORE INTO rg_case_findings VALUES(?,?)", (case_id, fid))
-            con.execute("UPDATE rg_findings SET status='REMEDIATION_PLANNED',updated_at=? "
-                        "WHERE finding_id=? AND status IN ('NEW','TRIAGED','CONTAINED')",
-                        (now, fid))
+            finding_state = con.execute("SELECT status FROM rg_findings WHERE finding_id=?", (fid,)).fetchone()
+            if finding_state and finding_state["status"] in {"NEW", "TRIAGED", "CONTAINED"}:
+                old_state = finding_state["status"]
+                con.execute("UPDATE rg_findings SET status='REMEDIATION_PLANNED',updated_at=? WHERE finding_id=?",
+                            (now, fid))
+                con.execute("INSERT INTO rg_finding_history VALUES(?,?,?,?,?,?,?)",
+                    ("FH-" + uuid.uuid4().hex[:12].upper(), fid, actor.strip(),
+                     old_state, "REMEDIATION_PLANNED", "Finding linked to a dry-run response plan", now))
         con.execute("UPDATE rg_cases SET status='IN_REVIEW',updated_at=? WHERE case_id=? AND status='OPEN'",
                     (now, case_id))
     return plan_id
@@ -563,6 +580,8 @@ def approve_action_plan(plan_id: str, reviewer: str, decision: str, reason: str)
 
 def execute_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
     initialize_prototype()
+    if not actor.strip():
+        raise ValueError("Execution actor is required.")
     with _connect() as con:
         con.execute("BEGIN IMMEDIATE")
         plan = con.execute("SELECT * FROM rg_action_plans WHERE plan_id=?", (plan_id,)).fetchone()
@@ -600,6 +619,8 @@ def execute_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
 
 def verify_action_plan(plan_id: str, actor: str) -> dict[str, Any]:
     initialize_prototype()
+    if not actor.strip():
+        raise ValueError("Verification actor is required.")
     with _connect() as con:
         plan = con.execute("SELECT * FROM rg_action_plans WHERE plan_id=?", (plan_id,)).fetchone()
         if plan is None:
