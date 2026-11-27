@@ -1,374 +1,205 @@
 # RogueGuard
 
-**Identity Exposure, Permission Intelligence & Response Planning — final prototype candidate.**
+**Identity Exposure · Permission Intelligence · Response Planning**
 
-RogueGuard is a defensive security workbench for reviewing non-human identities, understanding excessive access, planning least-privilege changes, and preserving evidence around response decisions.
+<sub>Final prototype candidate · v0.9 workbench · Intended submission release: v1.0</sub>
 
-The project is now entering its final prototype cycle. **RogueGuard v0.9 will be the last prototype reviewed before the final submission product (v1.0).** The purpose of v0.9 is to consolidate the strongest features, close critical workflow gaps, validate the complete demonstration, and freeze scope. The next release after review is intended to be the final, documented, tested submission build — not another open-ended prototype.
+RogueGuard is a defensive identity-security workbench for reviewing non-human identities, detecting risky permission assignments, planning least-privilege responses, and preserving evidence around analyst decisions.
+
+The project is moving through its **last prototype cycle**. v0.9 is intended to be the final prototype reviewed before v1.0, the final academic submission product. The objective is to deliver one coherent, tested, evidence-backed analyst workflow—not an endless feature expansion.
 
 > [!IMPORTANT]
-> **Release status:** the current checked-in implementation is the v0.1 foundation. The v0.9 final-prototype scope below is planned work, not completed functionality. The current application remains a local synthetic simulation built with Python, Streamlit, and SQLite. It does not discover live identities, read cloud IAM policies, ingest provider audit logs, revoke credentials, or modify cloud resources. Any cloud operation must be separately implemented and verified in an explicitly authorised sandbox. The v1.0 final product will only be called submission-ready after its acceptance checks and evidence are complete.
+> **Current scope:** RogueGuard runs locally with synthetic JSON fixtures, Python, Streamlit, and SQLite. The v0.9 workbench simulates response actions; it does not discover live identities, read or modify cloud IAM policies, revoke credentials, ingest provider audit logs, or change cloud resources. Some v0.9 capabilities remain under development and must pass the review gates in [the final submission plan](docs/final_submission_plan.md).
 
 <p align="center">
-  <img src="https://img.shields.io/badge/STATUS-FINAL%20PROTOTYPE%20CYCLE-8250df?style=for-the-badge" alt="Final prototype cycle">
+  <img src="https://img.shields.io/badge/RELEASE-v0.9%20FINAL%20PROTOTYPE-8250df?style=for-the-badge" alt="RogueGuard v0.9 final prototype">
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit">
-  <img src="https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white" alt="SQLite">
-  <img src="https://img.shields.io/badge/Tests-unittest-2E8B57" alt="Python unittest">
-  <img src="https://img.shields.io/badge/Cloud%20integration-NOT%20IMPLEMENTED-lightgrey" alt="Cloud integration not implemented">
+  <img src="https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/SQLite-Local%20Store-003B57?logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/Cloud%20Integration-Not%20Implemented-lightgrey" alt="Cloud integration not implemented">
 </p>
 
 ---
 
-## 01 / The problem RogueGuard is exploring
+## 01 / Why RogueGuard?
 
-Service accounts and other workload identities often accumulate permissions as systems evolve. A role that was useful during initial setup may remain long after the workload changes. An identity may have no clear owner, a stale purpose, a broad resource scope, or the ability to impersonate another identity.
+Service accounts and workload identities often accumulate permissions as workloads and systems evolve. An identity may retain an old administrative role, have no accountable owner, or possess an ability to access secrets or impersonate another principal that its current purpose does not require.
 
-A simple role comparison can expose obvious excess grants, but it is not enough to understand the full security picture. A useful identity review also needs to answer:
+A role comparison alone is not enough. An analyst also needs context:
 
-- **Who is this identity?** What workload uses it, who owns it, and is it still required?
-- **What can it access?** Which roles are granted, at what resource scope, and through which policy path?
-- **Why does it have that access?** Is there a current, approved purpose and a traceable baseline?
-- **What could go wrong?** Could the identity access sensitive data, create resources, or impersonate another principal?
-- **What should happen next?** Can access be reduced safely, should the identity be quarantined, and who must approve the action?
-- **How do we prove it?** What was observed, what changed, what was tested, and what remains unverified?
+- **Identity:** who owns the principal, what workload uses it, and whether it is still active.
+- **Access:** which role is assigned to which resource, and from what source.
+- **Baseline:** why the permission is required and whether the baseline has been reviewed.
+- **Finding:** what rule was triggered, what evidence supports it, and how confident the system is.
+- **Response:** what a proposed change will do before it is applied.
+- **Verification:** whether the resulting state matches the reviewed plan.
+- **Evidence:** who made a decision, why it was made, and what changed.
 
-RogueGuard is being developed to explore these questions in a controlled, evidence-led workflow.
+RogueGuard explores this workflow in a controlled, reproducible synthetic environment.
 
-## 02 / Current prototype: what works today
+## 02 / What is implemented in the v0.9 workbench?
 
-The current codebase provides a small but testable local foundation.
-
-| Capability | Current behaviour |
+| Capability | Current implementation |
 |---|---|
-| Synthetic identity inventory | Four seeded service-account records with purpose, owner, resource labels, granted roles, and declared required roles |
-| Permission comparison | Computes excess and missing roles by comparing granted roles with the declared baseline |
-| Risk score | Applies fixed, documented role weights and caps the illustrative score at 100 |
-| Containment simulation | Retains selected required roles and marks the synthetic account as QUARANTINED |
-| Reactivation | Reactivates a quarantined record without restoring removed grants |
-| Local audit events | Records before/after roles, status, removed roles, outcome, and UTC timestamp |
-| Demo reset | Recreates the synthetic seed dataset and clears local audit events |
-| Automated tests | 17 standard-library unit and database tests |
-| Dashboard | Inventory, containment console, summary metrics, and local audit trail |
+| Scenario fixtures | Versioned JSON scenarios with identity, resource, baseline, binding, and relationship data |
+| Fixture validation | Rejects missing required fields, duplicate principals, and bindings to unknown principals/resources |
+| Identity explorer | Displays owner, purpose, type, environment, lifecycle state, review date, baseline, and resource-level bindings |
+| Permission model | Represents a principal + role + resource binding, including source, optional condition, and inheritance flag |
+| Finding engine | Detects excess roles, missing required roles, unknown roles, broad project/folder scope, missing owner, stale review, and invalid review date |
+| Explainable findings | Stable finding IDs, rule IDs, evidence details, severity, confidence, recommendation, and lifecycle state |
+| Analyst workflow | Finding inbox, state transitions, cases, and a case timeline |
+| Dry-run response | Stores before/after snapshots without changing the active scenario |
+| Independent review | Requires an approver different from the plan creator |
+| Response simulator | Separates excess-permission removal from identity quarantine |
+| Reactivation gate | Requires a quarantined identity and removal of excess bindings before reactivation |
+| Verification | Compares actual post-action state against the reviewed plan |
+| Evidence export | JSON case bundle, CSV findings, SHA-256 manifest, and optional identifier/token-like redaction |
+| Relationship view | Displays relationship edges supplied by the synthetic scenario |
+| Automated tests | Unit, database, and v0.9 workflow regression tests in GitHub Actions |
 
-### Seeded scenario
+### Current synthetic scenarios
 
-The demo contains four fictional identities. One is intentionally overprivileged.
+**Overprivileged Results Exporter** includes four fictional service identities, resource-level bindings, owner/baseline metadata, an intentionally overprivileged exporter, and an older unowned reporting identity.
 
-| Synthetic identity | Declared purpose | Seeded condition |
-|---|---|---|
-| svc-library-reader | Read approved library catalogue files | Matches declared role baseline |
-| svc-results-export | Export approved examination result reports | Three excess grants beyond the declared viewer role |
-| svc-backup-agent | Read backup metadata and write backup archives | Matches declared role baseline |
-| svc-reporting-old | Legacy reporting integration | No active permissions declared |
+**Unknown Role and Delegation Chain** includes a deliberately unknown role, broad-scope access, missing ownership, and a synthetic delegation relationship.
 
-The intentionally overprivileged account has these extra grants:
+The fixtures are designed to demonstrate configuration deviations. They do not prove an intruder exists, establish who changed a policy, or determine malicious intent.
 
-- storage.objectAdmin
-- secretmanager.secretAccessor
-- iam.serviceAccountTokenCreator
+### Detection rules
 
-This demonstrates a configuration deviation in synthetic data. It does **not** prove an intruder exists, identify who changed an IAM policy, or establish malicious intent.
+| Rule ID | What it detects |
+|---|---|
+| `EXCESS_ROLE` | A granted role not present in the declared required-role baseline |
+| `MISSING_REQUIRED_ROLE` | A baseline role with no matching binding |
+| `UNKNOWN_ROLE` | A role outside the prototype's recognised role catalogue |
+| `BROAD_RESOURCE_SCOPE` | A selected non-viewer permission attached to project or folder scope |
+| `MISSING_OWNER` | No accountable owner is recorded |
+| `STALE_ACCESS_REVIEW` | The identity's review date is in the past |
+| `INVALID_REVIEW_DATE` | Review metadata is not a valid ISO date |
 
-### Current architecture
+Severity and confidence are separate fields. Confidence currently reflects the fixture baseline approval state; it is not a statistical confidence interval. Detection uses declared fixture data and does not measure actual permission usage.
+
+## 03 / End-to-end analyst workflow
 
 ~~~mermaid
 flowchart TD
-    A[Synthetic seed records] --> B[Streamlit dashboard]
-    B --> C[Identity inventory]
-    C --> D[Permission comparison]
-    D --> E[Illustrative risk score]
-    E --> F[Operator confirmation]
-    F --> G[Local containment simulation]
-    G --> H[(SQLite account store)]
-    G --> I[(SQLite audit table)]
-    H --> B
-    I --> B
-    J[unittest suite] -. tests .-> D
-    J -. tests .-> G
+    A[Load synthetic scenario] --> B[Inspect identity and resource bindings]
+    B --> C[Run finding rules]
+    C --> D[Review evidence and severity]
+    D --> E[Create case]
+    E --> F[Generate dry-run plan]
+    F --> G[Independent reviewer decision]
+    G --> H{Approved?}
+    H -- No --> I[No response executed]
+    H -- Yes --> J[Simulate local response]
+    J --> K[Verify post-action state]
+    K --> L[Export case evidence]
 ~~~
 
-| Component | Current responsibility |
-|---|---|
-| app.py | Streamlit interface and operator actions |
-| core.py | Role comparison, risk heuristic, remediation calculation, and simulated access decisions |
-| database.py | SQLite seed data, persistence, transactional containment, reactivation, audit events, and reset |
-| tests/ | Core logic and database workflow tests |
+1. Load a scenario fixture.
+2. Inspect the selected identity and its resource-level bindings.
+3. Analyse the scenario and triage relevant findings.
+4. Create a case from one or more findings.
+5. Generate a dry-run plan and compare before/after snapshots.
+6. Obtain an independent reviewer decision.
+7. Execute the approved action against the local synthetic dataset.
+8. Verify the resulting state.
+9. Export the case evidence.
 
-See [architecture and threat model](docs/architecture.md), [test matrix](docs/test_matrix.md), and [findings register](docs/findings_register.md).
+### Separate response operations
 
----
+- **REMOVE_EXCESS:** removes bindings not present in the declared required-role baseline. It does not quarantine the identity.
+- **QUARANTINE:** changes the synthetic identity lifecycle state to QUARANTINED. It does not remove any role bindings.
+- **REACTIVATE:** reactivates a quarantined identity only after its remaining bindings fit the declared baseline. Removed permissions are never silently restored.
 
-## 03 / What is going wrong — current limitations to address
+The simulator checks that the live local state still matches the plan's original snapshot before execution. If the state has changed since review, the plan must be recreated.
 
-These are design and implementation gaps observed in the current repository. They are not claims of vulnerabilities in a live cloud environment.
+## 04 / Current limitations and risks
 
-| Current limitation | Why it matters | Direction for the next prototype |
+These limitations are deliberately visible so the project does not overclaim what it proves.
+
+| Limitation | Why it matters | Current treatment |
 |---|---|---|
-| Baseline is trusted seed data | The system cannot tell whether the declared required roles are correct or approved | Add baseline provenance, owner review, versioning, and approval history |
-| No live identity discovery | Unknown or newly created service accounts cannot be found | Introduce a source-adapter interface, beginning with synthetic JSON fixtures |
-| Roles are not attached to individual resource bindings | A role name alone does not explain whether access is project-wide, bucket-wide, inherited, or conditional | Model principal–role–resource bindings and policy inheritance explicitly |
-| No identity relationship graph | Impersonation and service-account delegation paths are invisible | Add a graph of principals, workloads, resources, and trust relationships |
-| Detection is limited to excess and missing roles | Dormant, ownerless, orphaned, unknown, or suspicious identities are not detected | Add independent finding rules with evidence and confidence |
-| Risk is a fixed heuristic | A few role weights can saturate the score; the result is not a probability or provider rating | Show score components, impact, confidence, and the reasons behind every score |
-| Containment combines two different actions | Removing excessive grants and disabling an identity have different operational effects | Separate permission reduction from full identity quarantine |
-| No dry-run policy diff | The operator cannot inspect a structured change plan before applying it | Preview before/after policy, affected resources, and expected workload impact |
-| Reactivation is immediate | A warning appears after reactivation rather than requiring review before it | Add a reactivation gate, owner approval, and post-restore verification |
-| Reset deletes local audit events | Useful demo evidence can disappear with the reset | Export or snapshot evidence before destructive resets; preserve case history |
-| Local audit data is mutable | SQLite evidence is not an independent or tamper-proof record | Add event IDs, actor/reason fields, integrity checks, export manifests, and an external evidence target later |
-| Minimal dashboard and test coverage | There is no search, filtering, case workflow, UI-level verification, or provider integration testing | Add analyst workflow views, structured fixtures, and expanded tests |
+| Fixture baselines are trusted | The declared required roles may be wrong or stale | Baseline approval state and rationale are shown; independent validation is future work |
+| No live identity discovery | Unknown cloud principals cannot be found | Versioned synthetic fixture import only |
+| No cloud policy evaluator | Inheritance, conditions, provider-specific permissions, and real policy semantics are not evaluated | Resource/role bindings are simplified synthetic records |
+| Small role catalogue | An unrecognised role may need provider-specific validation | Flagged as UNKNOWN_ROLE; not automatically treated as benign |
+| Heuristic severity | It is not a probability, provider rating, or calibrated incident likelihood | Severity and confidence are shown separately, with evidence |
+| Relationship edges are supplied | A graph edge is not proof of a real privilege-escalation path | Graph is clearly labelled synthetic fixture context |
+| Reviewer identity is a label | Two-person approval is not enterprise authentication | Separate reviewer field is required, but not authenticated |
+| SQLite is local and mutable | Local audit is not immutable evidence storage | Event history and export manifest help with review; independent retention is future work |
+| Export hash limitations | A hash manifest alone does not protect the manifest or prove trusted time | Export explicitly warns that hashes are not immutable storage |
+| No UI automation coverage yet | CI tests the domain workflow, not every browser interaction | Manual T01–T08 review and UI smoke tests remain part of the release gate |
 
-### Important risk-model caveats
+## 05 / Final prototype v0.9 — scope freeze
 
-The current role weights are a prioritisation aid only. They are not calibrated against incident outcomes. Unknown roles currently receive a default weight, and account status affects the displayed score. The next iteration should keep **finding severity**, **identity status**, and **confidence in the evidence** as separate values rather than compressing them into one number.
+v0.9 is the **last prototype before submission**. The target is one complete analyst experience, not every possible IAM feature.
 
-The current comparison also treats role names as a set. It does not evaluate conditional bindings, inherited grants, resource-level scope, permission-level differences within a role, or the actual use of a permission.
+### Review-critical acceptance
 
----
+- A reviewer can load a known fixture and understand identity ownership, purpose, and resource scope.
+- Findings explain the rule, evidence, severity, confidence, and next action.
+- An analyst can create a case and review the policy change before execution.
+- Permission removal and quarantine are independent actions.
+- A second reviewer must approve the plan.
+- Execution is blocked for pending/rejected or stale plans.
+- Post-action verification records whether the intended state was achieved.
+- Reactivation is blocked while excess grants remain.
+- Case export includes findings, identity/resource context, response plans, approvals, events, and integrity manifest.
+- Automated tests and manual review evidence are complete.
 
-## 04 / Final prototype v0.9 — the last prototype before submission
+### Stretch features only if the required workflow is stable
 
-This is the **single final prototype cycle**. It is not a commitment to build every feature in the wishlist. The scope is deliberately limited to features that make the current demonstration more complete, explainable, testable, and defensible at review.
+- Interactive graph traversal and transitive delegation-path calculation.
+- Snapshot drift comparison between arbitrary historical policy versions.
+- Additional scenario templates.
+- UI smoke tests and coverage reporting.
 
-The v0.9 review candidate should demonstrate one end-to-end analyst journey using synthetic, replayable data:
+These are not reasons to delay the core workflow or mislabel an unfinished feature as complete.
 
-**load scenario → inspect identity → understand finding → review policy diff → approve a response plan → simulate action → verify outcome → export evidence.**
+## 06 / Release path — last prototype, then final product
 
-### v0.9 scope — required for the final prototype review
+| Release | Purpose | Exit gate |
+|---|---|---|
+| **v0.9 — Final prototype** | Last review candidate | Review-critical workflows operate locally; CI and review evidence are available; limitations are explicit |
+| **v1.0 — Final product** | Final academic submission | Feature freeze; defect fixes complete; T01–T08 executed where applicable; tests, documentation, screenshots, report, demo, and release notes complete |
 
-#### A. Identity and permission context
-- Add a versioned synthetic fixture format for identities, resources, role bindings, and declared permission baselines.
-- Record identity type, owner, purpose, environment, lifecycle state, and last-reviewed metadata.
-- Model a permission as a binding between a principal, role, and resource, rather than only a flat role list.
-- Preserve the source and rationale for each expected permission baseline.
-- Detect excess grants, missing required grants, unknown roles, missing owners, stale reviews, and broad resource scopes where the fixture provides enough information.
-- Do not automatically grant missing permissions.
+After the v0.9 review, only fix defects, close acceptance gaps, improve clarity, and collect evidence. Do not start another feature-expansion cycle.
 
-#### B. Explainable findings
-- Give each finding a stable ID, rule ID, principal, affected resource, evidence source, severity, confidence, and recommended next action.
-- Separate finding severity, identity status, and confidence; do not present the current role-weight score as a probability.
-- Add finding states: NEW, TRIAGED, ACCEPTED, FALSE POSITIVE, REMEDIATION PLANNED, RESOLVED, and RETESTED.
-- Preserve the original evidence when a finding is accepted or marked as a false positive.
-- Add policy-snapshot comparison to show what changed between two synthetic states.
+See [Final Prototype and Submission Plan](docs/final_submission_plan.md) for the complete acceptance criteria, review demo sequence, evidence tracker, and release decision gates.
 
-#### C. Safe response planning
-- Add a read-only review mode and a dry-run plan that shows the exact before/after permission set.
-- Separate **permission reduction** from **identity quarantine**; they must be distinct operator decisions.
-- Show the affected synthetic resources and workloads before a proposed change.
-- Require an operator reason and an explicit confirmation for simulated response actions.
-- Keep a prior state snapshot and a proposed rollback plan.
-- Add post-action verification with VERIFIED, FAILED, or NOT VERIFIED outcomes.
-- Require a review checklist before reactivation; never silently restore removed permissions.
+## 07 / Architecture and project files
 
-#### D. Evidence and case workflow
-- Group a finding, identity, response plan, approvals, and evidence under a case ID.
-- Record actor, action, reason, UTC timestamp, case ID, before/after state, and outcome in each audit event.
-- Export a case bundle in JSON and CSV, including source snapshots and a SHA-256 integrity manifest.
-- Add redaction for secrets, tokens, personal data, and sensitive resource identifiers.
-- Make reset and deletion explicit. Preserve or export evidence before clearing the demo state.
+- [Architecture and threat model](docs/architecture.md)
+- [Project synopsis](docs/project_synopsis.md)
+- [Test matrix](docs/test_matrix.md)
+- [Findings register](docs/findings_register.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
 
-A local hash manifest helps identify changes to exported files; it does **not** create immutable or independently protected audit storage.
-
-#### E. Analyst dashboard
-- Add a searchable finding inbox with filters for severity, state, identity, owner, and environment.
-- Add an identity detail page with owner, purpose, role bindings, baseline, related findings, and event history.
-- Add a side-by-side policy diff and a compact case timeline.
-- Keep the existing overview, containment console, and audit trail, but align them to the case workflow.
-- Provide a small scenario library with at least the overprivileged exporter and one additional synthetic scenario.
-
-#### F. Verification and engineering quality
-- Add tests for new rules, invalid workflow transitions, approval requirements, rollback, evidence export, reset behaviour, and malformed fixtures.
-- Add fixture-based tests for the provider adapter contract.
-- Add UI smoke tests for the main review and response journeys.
-- Add schema versioning/migrations and a safe database backup path.
-- Keep the CI test workflow required for merge.
-- Keep all fixtures synthetic; prevent credentials, local databases, and sensitive evidence from entering Git.
-
-### Optional only if the required scope is stable
-
-- Identity relationship graph and impersonation-path visualisation.
-- A richer blast-radius graph across synthetic resources.
-- Additional scenario templates and visual analytics.
-
-These are stretch features. They must not delay the acceptance criteria above.
-
-### Cloud integration boundary
-
-The v0.9 prototype should use a mock provider adapter backed by synthetic fixtures. A read-only Google Cloud / Floci adapter is optional and only belongs in scope if sandbox access, supported operations, and mentor approval are confirmed. Cloud writes, credential revocation, and automatic containment remain out of scope unless explicitly authorised and independently verified.
-
-### A. Identity intelligence
-
-- **Expanded identity registry:** service accounts, workload identities, human principals, service principals, and unknown principals as distinct entity types.
-- **Ownership and lifecycle:** owner, team, purpose, environment, creation time, last observed time, lifecycle state, and review date.
-- **Identity health checks:** missing owner, missing purpose, stale identity, expired review, disabled-but-still-referenced identity, and orphaned resource references.
-- **Permission inventory:** individual role bindings with principal, role, resource, source, condition, and inheritance metadata.
-- **Baseline provenance:** baseline owner, source, version, rationale, approval state, and last review timestamp.
-- **Unknown-grant detection:** identify grants that do not map to the prototype's recognised role catalogue; never silently treat an unknown role as harmless.
-- **Least-privilege comparison:** detect excess and missing permissions without automatically granting missing access.
-- **Resource scope analysis:** distinguish project, folder, bucket, and object-level assignments in the data model.
-- **Identity relationship map:** visualise service-to-service trust, impersonation, delegation, and token-creation relationships.
-- **Blast-radius preview:** show which synthetic resources and connected identities could be affected by a principal's permissions.
-
-### B. Finding and risk engine
-
-- **Rule-based findings:** excessive role, broad resource scope, unknown role, missing owner, stale identity, expired review, risky role combination, and suspicious trust relationship.
-- **Finding lifecycle:** NEW → TRIAGED → ACCEPTED / FALSE POSITIVE → REMEDIATION PLANNED → RESOLVED → RETESTED.
-- **Evidence-backed findings:** each finding should include a rule ID, principal, affected resource, observed grant, expected baseline, evidence source, timestamp, and confidence.
-- **Explainable score breakdown:** show which factors increased impact and why, rather than displaying only a number.
-- **Risk dimensions:** separate impact, likelihood estimate, exposure, confidence, and operational criticality.
-- **Policy drift detection:** compare two synthetic snapshots and highlight newly added, removed, or changed bindings.
-- **Exception handling:** allow a time-limited, justified exception with owner, approver, expiry, and review status.
-- **False-positive workflow:** record analyst rationale and preserve the original evidence instead of deleting the finding.
-
-### C. Response planning and containment
-
-- **Read-only review mode:** inspect findings without changing the synthetic environment.
-- **Dry-run remediation:** build a proposed policy diff and show exactly which grants would be changed.
-- **Split response actions:** remove an excess grant, quarantine an identity, suspend a relationship, or request a review as separate operations.
-- **Impact preview:** show affected synthetic workloads and resources before a proposed change.
-- **Approval workflow:** require an operator reason and owner approval for sensitive actions; support a two-person approval concept for high-impact actions.
-- **Response playbooks:** guided steps for overprivileged identities, abandoned identities, suspicious delegation, and unknown grants.
-- **Safe simulator:** apply proposed changes to a copy or fixture dataset before touching the active demo state.
-- **Rollback plan:** store the prior policy snapshot and a proposed reversal; require review before replaying it.
-- **Post-action verification:** compare the resulting state with the intended policy and mark the action VERIFIED, FAILED, or NOT VERIFIED.
-- **Reactivation gate:** require a review checklist and explicit approval before a quarantined identity can become active again.
-
-### D. Evidence, audit, and case management
-
-- **Case workspace:** group findings, affected identities, response plans, approvals, and evidence under a case ID.
-- **Richer audit events:** actor, action, reason, timestamp, case ID, before/after state, approval reference, and outcome.
-- **Evidence snapshots:** preserve the inventory and policy state used to make a decision.
-- **Integrity manifest:** calculate hashes for exported evidence files and record a manifest to help detect later modification.
-- **Evidence export:** JSON and CSV initially; a compact report format can follow.
-- **Redaction controls:** mask secrets, tokens, personal data, and sensitive resource identifiers in exports.
-- **Evidence retention controls:** make reset, archive, and deletion explicit actions with clear warnings.
-- **Audit review:** filter events by principal, action, outcome, case, and date range.
-
-A local hash or SQLite audit table is **not** equivalent to immutable storage. Independent retention and access controls would still be required for a production-grade evidence system.
-
-### E. Analyst experience
-
-- **Security overview:** counts by finding state, severity, identity type, and environment.
-- **Finding inbox:** searchable, filterable, sortable list with owner and next action.
-- **Identity detail view:** metadata, roles, resource bindings, baseline, related findings, and event history.
-- **Policy diff viewer:** side-by-side before/after grants and resource scopes.
-- **Relationship visualisation:** interactive identity and resource graph.
-- **Timeline:** correlate synthetic policy changes, findings, approvals, and response actions.
-- **Evidence panel:** inspect source records and export a case bundle.
-- **Scenario library:** load named scenarios such as overprivileged exporter, abandoned service account, risky impersonation chain, or broad storage access.
-- **Demo mode:** reset to a known fixture while keeping exported evidence outside the resettable dataset.
-
-### F. Provider integration boundary — future work
-
-The prototype should be provider-neutral at the core and provider-specific at the edges.
-
-- Define an identity-provider adapter contract for inventory, policy reads, resource metadata, and audit-event retrieval.
-- Implement a mock adapter first, backed by versioned JSON fixtures.
-- Add a read-only adapter for the explicitly assigned Google Cloud / Floci sandbox only after access, supported operations, and mentor approval are confirmed.
-- Record the provider, project, endpoint, timestamp, and operation result for every integration test.
-- Label each operation as SIMULATED, READ, WRITE, VERIFIED, FAILED, or NOT SUPPORTED.
-- Keep cloud writes disabled by default; require a separate approval gate for any sandbox response action.
-- Never infer that a service is integrated merely because it is enabled or an API endpoint exists.
-
-### G. Engineering quality
-
-- Add schema versioning and controlled SQLite migrations.
-- Add unit tests for every finding rule and response transition.
-- Add fixture-based adapter contract tests.
-- Add tests for malformed data, unknown roles, empty baselines, duplicate grants, invalid transitions, reset evidence preservation, and transaction rollback.
-- Add UI smoke tests for the highest-value operator flows.
-- Add coverage reporting, linting, dependency review, and static checks in CI.
-- Add structured application logs with secret redaction.
-- Keep test fixtures synthetic and prevent real credentials or database files from entering Git.
-
----
-
-## 05 / Target architecture for the final prototype
-
-The architecture below is a **v0.9 design target**, not the current code layout. It prioritises a complete local analyst workflow; any provider adapter remains optional and separately gated.
-
-~~~mermaid
-flowchart LR
-    A[Synthetic fixtures] --> B[Provider adapter interface]
-    A2[Future authorised sandbox adapter] -. later .-> B
-    B --> C[Normalisation and validation]
-    C --> D[Identity and resource registry]
-    D --> E[Relationship graph]
-    D --> F[Baseline and policy evaluator]
-    E --> G[Finding engine]
-    F --> G
-    G --> H[Finding inbox and risk explanation]
-    H --> I[Case workspace]
-    I --> J[Dry-run response planner]
-    J --> K[Approval gate]
-    K --> L[Local response simulator]
-    K -. future, separately approved .-> M[Sandbox response adapter]
-    L --> N[Evidence and audit service]
-    M --> N
-    N --> O[Case export and verification]
+~~~text
+RogueGuard/
+├── app.py
+├── core.py
+├── database.py
+├── prototype.py
+├── fixtures/
+│   └── scenarios/
+│       ├── overprivileged-exporter.json
+│       └── unknown-role-and-delegation.json
+├── docs/
+├── tests/
+│   ├── test_core.py
+│   ├── test_database.py
+│   └── test_prototype.py
+├── evidence/
+│   └── exports/       # generated locally; ignored by Git
+└── .github/
+    └── workflows/
+        └── tests.yml
 ~~~
 
-### Proposed core data objects
-
-| Object | What it represents |
-|---|---|
-| Identity | Principal, type, owner, purpose, environment, and lifecycle |
-| Resource | Project, bucket, service, or other protected asset |
-| RoleBinding | Principal, role, resource, condition, source, and inheritance path |
-| Baseline | Expected access, rationale, owner, version, and approval |
-| Finding | Rule, severity, confidence, evidence, state, and recommended action |
-| Case | Related findings, identities, owners, approvals, and timeline |
-| ActionPlan | Proposed changes, impact preview, prerequisites, and rollback |
-| Approval | Reviewer, decision, reason, and timestamp |
-| AuditEvent | Actor, action, target, outcome, before/after references, and case |
-| EvidenceArtifact | Snapshot, export, hash, source, timestamp, and redaction state |
-
----
-
-## 06 / Release path — one last prototype, then final product
-
-There are now only **two release milestones** left. The v0.9 review candidate is the last prototype. After the review, work should focus on acceptance fixes and release preparation for v1.0 — not another feature-expansion cycle.
-
-| Release | Purpose | Scope | Exit gate |
-|---|---|---|---|
-| **v0.1 — Foundation (current code)** | Prove the core idea | Synthetic inventory, basic permission comparison, illustrative score, local containment, SQLite audit, 17 current tests | Existing demo runs and current tests pass |
-| **v0.9 — Final prototype / review candidate** | Demonstrate the complete intended workflow | Prioritised v0.9 scope in Section 04: fixture-based inventory, explainable findings, policy diff, dry-run response, separate response actions, case evidence, and expanded verification | All v0.9 review-critical flows work locally; known limitations and evidence are documented |
-| **v1.0 — Final product / submission release** | Deliver a stable, reproducible academic project | Freeze features; resolve review feedback; run full tests; validate T01–T08; finalise report, demo script, screenshots, setup guide, and release notes | No critical defects; test and evidence pack complete; every integration claim independently verified or clearly labelled simulated/not supported |
-
-### Final prototype review gate — v0.9
-
-The last prototype should be reviewable against these questions:
-
-1. Can an evaluator load a known synthetic scenario and understand the identity's purpose, owner, and resource scope?
-2. Can RogueGuard produce a finding that explains exactly what is excessive, missing, unknown, or suspicious?
-3. Can the evaluator inspect the evidence and understand why the finding has its severity and confidence?
-4. Can the evaluator preview a response before any simulated change is applied?
-5. Are permission reduction and identity quarantine separate, explicit decisions?
-6. Does the application record the operator reason, before/after state, and result?
-7. Can it verify the simulated outcome and export a case evidence bundle?
-8. Do automated tests cover success paths, rejected actions, rollback, and evidence preservation?
-
-### Final product acceptance gate — v1.0
-
-The final submission is not another prototype sprint. It should be a controlled release candidate with:
-
-- A frozen feature set and no unfinished high-priority workflow.
-- Reproducible setup instructions and a clean start from a fresh clone.
-- A complete test run, with results recorded rather than assumed.
-- The project test matrix T01–T08 executed where applicable, with evidence attached.
-- A findings register that distinguishes synthetic observations from verified sandbox results.
-- Architecture, limitations, security boundaries, and operational assumptions documented.
-- Redacted screenshots, a short repeatable demo, and a final report.
-- A clear release recommendation and an explicit list of unsupported or unverified operations.
-- No credentials, real personal data, local databases, or unredacted sensitive evidence committed.
-
-**Cloud integration is not a release blocker if the assigned sandbox does not support or authorise an operation.** In that case, retain the local simulation, label the operation accurately, document what was attempted and why it could not be verified, and do not claim cloud-side success.
-
-After v0.9 review, only fix defects, close acceptance gaps, improve clarity, and complete evidence. Defer optional graph analytics, advanced anomaly detection, live monitoring, and other stretch features unless they are essential to passing the final acceptance gate.
-
----
-
-## 07 / Run locally
+## 08 / Run locally
 
 ### 1. Clone the repository
 
@@ -377,7 +208,7 @@ git clone https://github.com/Ayush-Iyer1611/RogueGuard.git
 cd RogueGuard
 ~~~
 
-### 2. Create and activate a virtual environment
+### 2. Create a virtual environment
 
 Linux / macOS:
 
@@ -393,75 +224,40 @@ py -m venv .venv
 .venv\Scripts\Activate.ps1
 ~~~
 
-### 3. Install dependencies
+### 3. Install and launch
 
 ~~~bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-~~~
-
-### 4. Run the current dashboard
-
-~~~bash
 streamlit run app.py
 ~~~
 
-Open the local URL printed by Streamlit, usually http://localhost:8501.
+Open the local address printed by Streamlit, usually http://localhost:8501.
 
-### 5. Run the current test suite
+### 4. Run automated tests
 
 ~~~bash
 python -m unittest discover -s tests -v
 ~~~
 
-The repository currently contains 17 unit and database tests. A passing suite verifies only the paths covered by those tests; it does not establish production security, cloud integration, or comprehensive UI correctness.
+A passing test suite verifies only the covered behaviours. It is not proof of production security, live cloud integration, or comprehensive UI correctness.
 
----
+## 09 / Safety and evidence boundaries
 
-## 08 / Repository map
-
-~~~text
-RogueGuard/
-├── app.py
-├── core.py
-├── database.py
-├── requirements.txt
-├── docs/
-│   ├── architecture.md
-│   ├── project_synopsis.md
-│   ├── test_matrix.md
-│   └── findings_register.md
-├── tests/
-│   ├── test_core.py
-│   └── test_database.py
-└── .github/
-    ├── workflows/
-    │   └── tests.yml
-    ├── ISSUE_TEMPLATE/
-    └── pull_request_template.md
-~~~
-
-## 09 / Safety and scope
-
-- Use synthetic identities, resources, and event fixtures during local development.
+- Use synthetic identities, resources, roles, and relationships for local development.
 - Use only localhost or an explicitly assigned and approved training sandbox.
-- Do not import real student data, personal data, production secrets, or credentials.
+- Do not import real student data, production credentials, secrets, or third-party resources.
 - Do not attempt to discover or modify identities in systems without authorisation.
-- Keep cloud integration read-only until the exact operation, scope, and approval are established.
-- Do not claim an operation is verified unless its result has been observed and recorded.
-- Keep local databases, generated evidence containing sensitive data, tokens, and credentials out of Git.
-- See [SECURITY.md](SECURITY.md) for the project's security reporting and safe-use guidance.
+- Cloud writes and credential operations remain out of scope unless separately approved and independently verified.
+- Keep local databases, generated exports, tokens, and credentials out of Git.
+- A simulated response must never be described as a verified cloud-side change.
+- See [SECURITY.md](SECURITY.md) for reporting and safe-use guidance.
 
 ## 10 / Project status
 
-**Current release: v0.1 foundation. Next review target: v0.9 final prototype. Intended submission release: v1.0 final product.**
+**Current phase: v0.9 final prototype implementation and verification.**  
+**Next release: v1.0 final product and academic submission.**
 
-RogueGuard has one final prototype cycle remaining. The purpose of the next review is to validate the complete analyst workflow and identify the last acceptance gaps. Following that review, the project moves into a feature freeze and finalisation phase.
+RogueGuard now has a broader local analyst workbench, but the final prototype must still pass its review-critical acceptance checks and manual evidence matrix. The v1.0 submission should be a stable, reproducible, tested, documented, and evidence-backed release within the verified project scope—not a claim of production-ready cloud security.
 
-The final product will be a stable, reproducible, evidence-backed academic submission within the verified scope of the local prototype and any authorised sandbox operations. It will not be described as a production-ready cloud security platform.
-
-**Build the final prototype deliberately. Verify it. Freeze it. Then ship the final product.**
-
----
-
-[Architecture](docs/architecture.md) · [Final submission plan](docs/final_submission_plan.md) · [Test matrix](docs/test_matrix.md) · [Findings register](docs/findings_register.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
+**Build deliberately. Review honestly. Verify the evidence. Freeze scope. Ship v1.0.**
