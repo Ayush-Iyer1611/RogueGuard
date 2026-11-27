@@ -174,10 +174,29 @@ with identities_tab:
 
 with findings_tab:
     st.subheader("Finding inbox")
+    filter_row = st.columns(4)
     status_options = ["ALL", "NEW", "TRIAGED", "ACCEPTED", "FALSE_POSITIVE",
                       "REMEDIATION_PLANNED", "CONTAINED", "RESOLVED", "RETESTED"]
-    chosen_status = st.selectbox("Filter by state", status_options)
-    visible = findings if chosen_status == "ALL" else [f for f in findings if f["status"] == chosen_status]
+    chosen_status = filter_row[0].selectbox("State", status_options)
+    severity_options = ["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    chosen_severity = filter_row[1].selectbox("Severity", severity_options)
+    owners = sorted({i.get("owner") or "Unassigned" for i in rg.list_identities(sid)})
+    chosen_owner = filter_row[2].selectbox("Owner", ["ALL"] + owners)
+    search_text = filter_row[3].text_input("Search identity / rule")
+    visible = findings
+    if chosen_status != "ALL":
+        visible = [f for f in visible if f["status"] == chosen_status]
+    if chosen_severity != "ALL":
+        visible = [f for f in visible if f["severity"] == chosen_severity]
+    if chosen_owner != "ALL":
+        owner_lookup = {i["principal"]: i.get("owner") or "Unassigned" for i in rg.list_identities(sid)}
+        visible = [f for f in visible if owner_lookup.get(f["principal"], "Unassigned") == chosen_owner]
+    if search_text.strip():
+        term = search_text.strip().casefold()
+        visible = [f for f in visible if term in f["principal"].casefold()
+                   or term in f["rule_id"].casefold()
+                   or term in f["title"].casefold()]
+    st.caption(f"Showing {len(visible)} of {len(findings)} findings.")
     if visible:
         st.dataframe(
             [{"ID": f["finding_id"], "Severity": f["severity"],
@@ -304,12 +323,25 @@ with response_tab:
             st.write("**Status:**", plan["status"])
             st.write("**Reason:**", plan["reason"])
             before, after = st.columns(2)
+            def binding_rows(snapshot):
+                return [{"Role": b["role"], "Resource": b["resource_id"],
+                         "Source": b["source"], "Condition": b.get("condition") or "None"}
+                        for b in snapshot["bindings"]]
             with before:
                 st.markdown("#### Before")
-                st.json(plan["before"])
+                st.metric("Bindings", len(plan["before"]["bindings"]))
+                st.dataframe(binding_rows(plan["before"]), use_container_width=True, hide_index=True)
             with after:
                 st.markdown("#### Proposed after")
-                st.json(plan["after"])
+                st.metric("Bindings", len(plan["after"]["bindings"]))
+                st.dataframe(binding_rows(plan["after"]), use_container_width=True, hide_index=True)
+            changed_bindings = len(plan["before"]["bindings"]) - len(plan["after"]["bindings"])
+            if plan["action_type"] == "QUARANTINE":
+                st.info("Impact preview: identity lifecycle state changes to QUARANTINED; role bindings remain unchanged.")
+            elif plan["action_type"] == "REACTIVATE":
+                st.info("Impact preview: identity lifecycle state changes to ACTIVE; no permissions are restored.")
+            else:
+                st.info(f"Impact preview: {max(changed_bindings, 0)} binding(s) will be removed in the local simulator.")
 
             if plan["status"] == "PENDING_APPROVAL":
                 st.markdown("#### Independent review")
