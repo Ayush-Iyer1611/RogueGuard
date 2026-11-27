@@ -3,6 +3,7 @@ from pathlib import Path
 
 import streamlit as st
 import prototype as rg
+import auth as local_auth
 
 
 st.set_page_config(
@@ -13,10 +14,87 @@ st.set_page_config(
 )
 
 
+
+def render_auth_screen():
+    """Render first-run local admin setup or the local sign-in screen."""
+    setup_mode = local_auth.user_count() == 0
+    st.markdown(
+        '<div class="rg-masthead"><div class="rg-brand"><div class="rg-mark">RG/</div>'
+        '<div><div class="rg-brand-name">ROGUEGUARD</div>'
+        '<div class="rg-brand-sub">LOCAL OPERATOR ACCESS / V1.0</div></div></div>'
+        '<div class="rg-top-right"><div class="rg-top-label">SECURE WORKSPACE ENTRY</div>'
+        '<div class="rg-live">AUTH GATE</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    left, right = st.columns([1.08, .92], gap="large")
+    with left:
+        st.markdown(
+            '<div class="rg-auth-intro"><div class="rg-auth-kicker">IDENTITY SECURITY / LOCAL WORKSPACE</div>'
+            '<div class="rg-auth-title">ACCESS IS A<br>PRIVILEGE.<br><em>PROVE YOURS.</em></div>'
+            '<div class="rg-auth-copy">A controlled environment for investigating identity exposure, '
+            'permission drift and response decisions. Authenticate to enter the analyst workbench.</div>'
+            '<div class="rg-auth-stamp">LOCAL DATABASE &nbsp; / &nbsp; PARAMETERISED AUTH QUERIES &nbsp; / &nbsp; PBKDF2 HASHING</div></div>',
+            unsafe_allow_html=True,
+        )
+    with right:
+        if setup_mode:
+            st.markdown(
+                '<div class="rg-auth-heading">INITIALISE OPERATOR</div>'
+                '<div class="rg-auth-sub">No local operator exists yet. Create the first administrator account to initialise this workspace. '
+                'Public self-registration is disabled after setup.</div>',
+                unsafe_allow_html=True,
+            )
+            with st.form("rg_initial_setup", clear_on_submit=False):
+                username = st.text_input("OPERATOR USERNAME", placeholder="e.g. ayush.admin", max_chars=32)
+                password = st.text_input("PASSWORD", type="password", placeholder="At least 12 characters", max_chars=128)
+                confirmation = st.text_input("CONFIRM PASSWORD", type="password", max_chars=128)
+                submitted = st.form_submit_button("CREATE LOCAL ADMIN", type="primary", width="stretch")
+            if submitted:
+                try:
+                    created = local_auth.create_first_user(username, password, confirmation)
+                    st.session_state["rg_auth_user"] = created
+                    st.session_state["rg_auth_role"] = "ADMIN"
+                    st.success("Local administrator created. Opening the workbench.")
+                    st.rerun()
+                except ValueError as exc:
+                    st.error(str(exc))
+        else:
+            st.markdown(
+                '<div class="rg-auth-heading">OPERATOR SIGN IN</div>'
+                '<div class="rg-auth-sub">Authenticate with the local operator account configured on this machine.</div>',
+                unsafe_allow_html=True,
+            )
+            with st.form("rg_login_form", clear_on_submit=True):
+                username = st.text_input("USERNAME", placeholder="Local operator", max_chars=64)
+                password = st.text_input("PASSWORD", type="password", max_chars=512)
+                submitted = st.form_submit_button("AUTHENTICATE", type="primary", width="stretch")
+            if submitted:
+                user = local_auth.authenticate(username, password)
+                if user:
+                    st.session_state["rg_auth_user"] = user["username"]
+                    st.session_state["rg_auth_role"] = user["role"]
+                    st.success("Authentication successful.")
+                    st.rerun()
+                else:
+                    st.error("Sign-in failed. Check your credentials or wait for the temporary lockout to expire.")
+        st.markdown(
+            '<div class="rg-auth-footnote">PASSWORDS ARE STORED AS SALTED PBKDF2-HMAC-SHA256 HASHES. '
+            'AUTHENTICATION LOOKUPS USE PARAMETERISED SQLITE QUERIES. FIVE FAILED ATTEMPTS TRIGGER A FIVE-MINUTE LOCKOUT. '
+            'THIS IS A LOCAL PROTOTYPE AUTH GATE, NOT ENTERPRISE SSO.</div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown(
+        '<div class="rg-footer"><span>ROGUEGUARD / IDENTITY SECURITY WORKBENCH</span>'
+        '<span>NO CLOUD ACCESS / LOCAL SIMULATION</span><span>AUTHENTICATED SESSION REQUIRED</span></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def inject_theme():
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
         :root {
             color-scheme: light;
             --paper: #eeede8;
@@ -317,7 +395,6 @@ def inject_theme():
             .rg-edge { text-align:left; }
         }
 
-        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
         html, body, [data-testid="stAppViewContainer"], input, textarea, button {
             font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
         }
@@ -453,6 +530,70 @@ def inject_theme():
             .rg-hero h1 em { white-space: normal; }
             .rg-hero:after { right: 3%; font-size: 7rem; }
         }
+
+        .rg-hero {
+            grid-template-columns: minmax(0, 1fr) minmax(145px, .34fr) !important;
+        }
+        .rg-hero h1 {
+            font-size: clamp(3.15rem, 5.1vw, 5.65rem) !important;
+            line-height: .9 !important;
+            max-width: 100% !important;
+            overflow-wrap: normal !important;
+        }
+        .rg-hero h1 span, .rg-hero h1 em {
+            display: block !important;
+            white-space: normal !important;
+        }
+        .rg-hero h1 em {
+            font-size: .92em;
+            letter-spacing: -.055em !important;
+        }
+        .rg-auth-intro {
+            min-height: 440px; display:flex; flex-direction:column; justify-content:center;
+            background:linear-gradient(135deg,#17191b 0%,#252a2c 64%,#39443a 100%);
+            color:#f8f7f2; border:1.5px solid #17191b; box-shadow:8px 8px 0 #17191b;
+            padding:clamp(1.5rem,4vw,3.2rem); position:relative; overflow:hidden;
+        }
+        .rg-auth-intro:after {
+            content:"RG /"; position:absolute; right:-1rem; bottom:-3rem;
+            color:rgba(255,255,255,.055); font:900 clamp(8rem,17vw,15rem)/.8 "Barlow Condensed",Impact,sans-serif;
+            pointer-events:none;
+        }
+        .rg-auth-kicker {
+            color:#c9f36a; font:700 .66rem "IBM Plex Mono",monospace;
+            letter-spacing:.18em; text-transform:uppercase;
+        }
+        .rg-auth-title {
+            position:relative; z-index:1; margin:1.1rem 0 .9rem;
+            color:#f8f7f2; font:900 clamp(3.4rem,6vw,6.2rem)/.82 "Barlow Condensed",Impact,sans-serif;
+            letter-spacing:-.035em; text-transform:uppercase;
+        }
+        .rg-auth-title em { color:#c9f36a; font-style:italic; }
+        .rg-auth-copy { max-width:430px; color:#c2c6c4; line-height:1.65; font-size:.88rem; }
+        .rg-auth-stamp {
+            position:relative; z-index:1; margin-top:2.2rem; padding-top:.8rem;
+            border-top:1px solid #50575a; color:#aeb5b2;
+            font:600 .61rem "IBM Plex Mono",monospace; letter-spacing:.14em;
+        }
+        .rg-auth-heading {
+            color:#17191b; font:900 2.1rem/.95 "Barlow Condensed",Impact,sans-serif;
+            text-transform:uppercase; letter-spacing:-.02em; margin:.2rem 0 .45rem;
+        }
+        .rg-auth-sub { color:#757a7c; font-size:.78rem; line-height:1.55; margin-bottom:1.3rem; }
+        [data-testid="stForm"] {
+            background:#f8f7f2; border:1.5px solid #25282b; border-radius:2px;
+            padding:1.35rem 1.35rem 1.1rem; box-shadow:6px 6px 0 rgba(23,25,27,.18);
+        }
+        .rg-auth-footnote {
+            color:#747a7b; font:600 .6rem/1.6 "IBM Plex Mono",monospace;
+            letter-spacing:.035em; margin-top:1rem;
+        }
+        @media (max-width: 900px) {
+            .rg-auth-intro { min-height:300px; }
+            .rg-auth-title { font-size:clamp(3.4rem,13vw,5.2rem); }
+            .rg-hero { grid-template-columns:1fr !important; }
+            .rg-hero h1 { font-size:clamp(3.2rem,10vw,5rem) !important; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -555,6 +696,14 @@ def finding_rows(items):
 
 
 inject_theme()
+local_auth.initialize_auth()
+effects_path = Path(__file__).with_name("assets") / "rogueguard-effects.html"
+st.html(effects_path, unsafe_allow_javascript=True)
+
+if not st.session_state.get("rg_auth_user"):
+    render_auth_screen()
+    st.stop()
+
 rg.initialize_prototype()
 available = rg.available_scenarios()
 loaded = rg.list_scenarios()
@@ -605,6 +754,11 @@ with st.sidebar:
         '<div style="font-size:.78rem;font-weight:800;margin-top:.25rem">LOCAL / SYNTHETIC</div></div>',
         unsafe_allow_html=True,
     )
+    st.divider()
+    st.caption(f"AUTHENTICATED OPERATOR / {st.session_state.get('rg_auth_user', 'unknown')}")
+    if st.button("SIGN OUT", use_container_width=True, key="rg_sign_out"):
+        local_auth.clear_auth_state(st.session_state)
+        st.rerun()
 
 sid = st.session_state.rg_scenario_id
 loaded_now = {x["scenario_id"] for x in rg.list_scenarios()}
@@ -633,7 +787,7 @@ st.markdown(
 )
 st.markdown(
     '<div class="rg-hero"><div><div class="rg-kicker">IDENTITY SECURITY WORKBENCH / 0.9</div>'
-    '<h1>See the access.<br><em>Control the exposure.</em></h1>'
+    '<h1><span>SEE THE ACCESS.</span><em>CONTROL THE EXPOSURE.</em></h1>'
     '<p>Investigate identity posture, understand permission drift, and validate response decisions through a controlled synthetic workflow.</p></div>'
     '<div class="rg-chrome-wrap"><div class="rg-chrome"></div></div></div>',
     unsafe_allow_html=True,
