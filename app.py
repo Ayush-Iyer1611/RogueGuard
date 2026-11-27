@@ -175,7 +175,7 @@ with identities_tab:
 with findings_tab:
     st.subheader("Finding inbox")
     status_options = ["ALL", "NEW", "TRIAGED", "ACCEPTED", "FALSE_POSITIVE",
-                      "REMEDIATION_PLANNED", "RESOLVED", "RETESTED"]
+                      "REMEDIATION_PLANNED", "CONTAINED", "RESOLVED", "RETESTED"]
     chosen_status = st.selectbox("Filter by state", status_options)
     visible = findings if chosen_status == "ALL" else [f for f in findings if f["status"] == chosen_status]
     if visible:
@@ -206,6 +206,12 @@ with findings_tab:
         st.write("**Rule:**", detail["rule_id"])
         st.write("**Recommendation:**", detail["recommendation"])
         st.json(detail["evidence"])
+        with st.expander("Decision history"):
+            history = rg.list_finding_history(selected_fid)
+            if history:
+                st.dataframe(history, use_container_width=True, hide_index=True)
+            else:
+                st.caption("No analyst state changes recorded for this finding yet.")
         allowed = sorted(rg.FINDING_TRANSITIONS.get(detail["status"], set()))
         if allowed:
             with st.form("finding_transition_form"):
@@ -265,8 +271,14 @@ with response_tab:
             target = st.selectbox("Target identity", case_principals)
             action = st.selectbox(
                 "Response action",
-                ["REMOVE_EXCESS", "QUARANTINE"],
-                format_func=lambda x: "Remove excess permissions only" if x == "REMOVE_EXCESS" else "Quarantine identity only"
+                ["REMOVE_EXCESS", "QUARANTINE"] + (
+                    ["REACTIVATE"] if rg.get_identity(sid, target)["lifecycle_state"] == "QUARANTINED" else []
+                ),
+                format_func=lambda x: {
+                    "REMOVE_EXCESS": "Remove excess permissions only",
+                    "QUARANTINE": "Quarantine identity only",
+                    "REACTIVATE": "Reactivate after remediation only"
+                }[x]
             )
             reason = st.text_area("Operator reason", placeholder="Explain why this simulated action is appropriate.")
             creator = st.text_input("Plan creator", value="analyst")
@@ -363,14 +375,18 @@ with cases_tab:
                 st.info("No response events have been recorded yet.")
         c1, c2 = st.columns(2)
         with c1:
-            new_case_state = st.selectbox("Case state", sorted(rg.CASE_TRANSITIONS.get(case["status"], set())))
-            if st.button("Update case state", disabled=not rg.CASE_TRANSITIONS.get(case["status"], set())):
-                try:
-                    rg.update_case_status(selected_case_id, new_case_state)
-                    st.success("Case state updated.")
-                    st.rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+            case_state_options = sorted(rg.CASE_TRANSITIONS.get(case["status"], set()))
+            if case_state_options:
+                new_case_state = st.selectbox("Case state", case_state_options)
+                if st.button("Update case state"):
+                    try:
+                        rg.update_case_status(selected_case_id, new_case_state)
+                        st.success("Case state updated.")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
+            else:
+                st.caption("This case is closed. Reopen it to continue working.")
         with c2:
             redact = st.checkbox("Redact sensitive strings in export", value=True)
             if st.button("Export case evidence bundle", type="primary"):
