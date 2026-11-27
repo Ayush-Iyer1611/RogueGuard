@@ -94,7 +94,7 @@ def inject_theme():
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Material+Symbols+Rounded&display=swap');
         :root {
             color-scheme: light;
             --paper: #eeede8;
@@ -129,7 +129,6 @@ def inject_theme():
         }
         [data-testid="stSidebar"] * {
             color: #f3f2ed !important;
-            font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
         }
         [data-testid="stSidebar"] .rg-sidebar-brand-name,
         [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong {
@@ -641,8 +640,7 @@ def inject_theme():
         }
 
         /* Explicit typography coverage for Streamlit's separately rendered sidebar. */
-        [data-testid="stSidebar"],
-        [data-testid="stSidebar"] * {
+        [data-testid="stSidebar"] {
             font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif !important;
         }
         [data-testid="stSidebar"] h1,
@@ -700,6 +698,36 @@ def inject_theme():
         [data-testid="stSidebar"] [data-testid="stButton"] button:hover,
         [data-testid="stSidebar"] [data-testid="stButton"] button:focus {
             background: #d9ff83 !important;
+        }
+        /* Preserve Streamlit's Material Symbols glyphs in the collapse control.
+           The previous universal sidebar font selector converted the icon name to plain text. */
+        [data-testid="stSidebarCollapseButton"] span,
+        [data-testid="stSidebarCollapseButton"] .material-symbols-rounded,
+        [data-testid="stSidebarCollapseButton"] .material-icons,
+        [data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"] {
+            font-family: "Material Symbols Rounded" !important;
+            font-weight: 400 !important;
+            font-style: normal !important;
+            font-size: 24px !important;
+            line-height: 1 !important;
+            letter-spacing: normal !important;
+            text-transform: none !important;
+            white-space: nowrap !important;
+            word-wrap: normal !important;
+            direction: ltr !important;
+            font-feature-settings: "liga" !important;
+            -webkit-font-feature-settings: "liga" !important;
+            -webkit-font-smoothing: antialiased !important;
+        }
+        /* A custom two-tone SVG arrow cursor; text fields keep their I-beam. */
+        :root, body, body * {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2 L3 23 L9 17 L13.5 27 L18 25 L13 16 L23 16 Z' fill='%2317191b' stroke='%23f8f7f2' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 5 L5 18.5 L9 14.8 L14.5 24 L15.8 23.4 L11.1 14.3 L19 14.3 Z' fill='%23c9f36a'/%3E%3C/svg%3E") 3 2, auto !important;
+        }
+        input, textarea, [contenteditable="true"] {
+            cursor: text !important;
+        }
+        button, a, select, [role="button"], [role="tab"] {
+            cursor: pointer !important;
         }
         </style>
         """,
