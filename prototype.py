@@ -520,9 +520,17 @@ def create_action_plan(case_id: str, principal: str, action_type: str,
              principal, actor.strip(), "DRY_RUN_CREATED", reason.strip(),
              json.dumps(before, sort_keys=True), json.dumps(after, sort_keys=True),
              "PENDING_APPROVAL", now))
-        for fid in (finding_ids or []):
+        linked_finding_ids = finding_ids or [
+            r["finding_id"] for r in con.execute(
+                "SELECT f.finding_id FROM rg_findings f "
+                "JOIN rg_case_findings cf ON cf.finding_id=f.finding_id "
+                "WHERE cf.case_id=? AND f.principal=?",
+                (case_id, principal))
+        ]
+        for fid in linked_finding_ids:
             con.execute("INSERT OR IGNORE INTO rg_case_findings VALUES(?,?)", (case_id, fid))
-            con.execute("UPDATE rg_findings SET status='REMEDIATION_PLANNED',updated_at=? WHERE finding_id=? AND status IN ('NEW','TRIAGED')",
+            con.execute("UPDATE rg_findings SET status='REMEDIATION_PLANNED',updated_at=? "
+                        "WHERE finding_id=? AND status IN ('NEW','TRIAGED','CONTAINED')",
                         (now, fid))
         con.execute("UPDATE rg_cases SET status='IN_REVIEW',updated_at=? WHERE case_id=? AND status='OPEN'",
                     (now, case_id))
