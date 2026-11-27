@@ -259,7 +259,9 @@ def get_identity(scenario_id: str, principal: str) -> dict[str, Any] | None:
             identity["baseline"] = dict(identity["baseline"])
             identity["baseline"]["required_roles"] = json.loads(identity["baseline"]["required_roles_json"])
         identity["bindings"] = [dict(r) for r in con.execute(
-            "SELECT b.*, r.name AS resource_name, r.resource_type, r.sensitivity "
+            "SELECT b.binding_id,b.scenario_id,b.principal,b.role,b.resource_id,b.source, "
+            "b.condition_text AS condition,b.inherited,b.created_at, "
+            "r.name AS resource_name, r.resource_type, r.sensitivity "
             "FROM rg_bindings b LEFT JOIN rg_resources r "
             "ON b.scenario_id=r.scenario_id AND b.resource_id=r.resource_id "
             "WHERE b.scenario_id=? AND b.principal=? ORDER BY b.role",
@@ -313,7 +315,7 @@ def analyze_scenario(scenario_id: str) -> list[dict[str, Any]]:
                         f"{role} is granted to {principal} but is not listed in its declared required roles.",
                         severity, "Review ownership and remove the grant if it is not required.",
                         {"granted_role": role, "required_roles": sorted(required),
-                         "binding_source": binding["source"], "condition": binding["condition"]})
+                         "binding_source": binding["source"], "condition": binding["condition_text"]})
             for role in sorted(required - granted):
                 add("MISSING_REQUIRED_ROLE", None, role, "Required permission is missing",
                     f"{role} is part of the declared baseline but no matching binding is present.",
@@ -442,7 +444,7 @@ def _snapshot(con: sqlite3.Connection, scenario_id: str, principal: str) -> dict
     if identity is None:
         raise ValueError("Identity does not exist in this scenario.")
     bindings = [dict(r) for r in con.execute(
-        "SELECT binding_id,role,resource_id,source,condition,inherited FROM rg_bindings WHERE scenario_id=? AND principal=? ORDER BY role,resource_id",
+        "SELECT binding_id,role,resource_id,source,condition_text AS condition,inherited FROM rg_bindings WHERE scenario_id=? AND principal=? ORDER BY role,resource_id",
         (scenario_id, principal))]
     return {"identity": dict(identity), "bindings": bindings}
 
